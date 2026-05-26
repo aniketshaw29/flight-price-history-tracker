@@ -44,14 +44,6 @@ export default function App() {
     [...new Set(routes.filter(r => r.origin === origin && r.destination === dest).map(r => r.trip_type))].sort(),
     [routes, origin, dest])
 
-  const departDates = useMemo(() =>
-    [...new Set(
-      routes
-        .filter(r => r.origin === origin && r.destination === dest && r.trip_type === tripType)
-        .map(r => r.depart_date)
-    )].sort(),
-    [routes, origin, dest, tripType])
-
   // reset downstream when parent changes
   useEffect(() => {
     if (dests.length) setDest(prev => dests.includes(prev) ? prev : dests[0])
@@ -60,10 +52,6 @@ export default function App() {
   useEffect(() => {
     if (tripTypes.length) setTripType(prev => tripTypes.includes(prev) ? prev : tripTypes[0])
   }, [tripTypes])
-
-  useEffect(() => {
-    if (departDates.length) setDepartDate(prev => departDates.includes(prev) ? prev : departDates[0])
-  }, [departDates])
 
   // fetch history when route selection is complete
   const selectedRoute = useMemo(() =>
@@ -99,12 +87,26 @@ export default function App() {
         origins={origins}       origin={origin}       setOrigin={setOrigin}
         dests={dests}           dest={dest}           setDest={setDest}
         tripTypes={tripTypes}   tripType={tripType}   setTripType={setTripType}
-        departDates={departDates} departDate={departDate} setDepartDate={setDepartDate}
+        departDate={departDate} setDepartDate={setDepartDate}
         historyFrom={historyFrom} setHistoryFrom={setHistoryFrom}
         historyTo={historyTo}     setHistoryTo={setHistoryTo}
       />
 
       {error && <div className="error-banner">{error}</div>}
+
+      {!error && departDate && !selectedRoute && (
+        <div className="not-tracked">
+          <strong>{origin} → {dest} ({tripType}) on {departDate}</strong> is not being tracked yet.
+          <br />
+          Add this to <code>config.toml</code> and restart the tracker:
+          <pre>{`[[routes]]
+origin      = "${origin}"
+destination = "${dest}"
+depart_date = "${departDate}"
+trip_type   = "${tripType}"
+threshold   = 4000`}</pre>
+        </div>
+      )}
 
       {selectedRoute && !error && (
         <>

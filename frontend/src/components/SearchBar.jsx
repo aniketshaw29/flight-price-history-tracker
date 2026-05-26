@@ -4,7 +4,7 @@ export default function SearchBar({
   origins, origin, setOrigin,
   dests, dest, setDest,
   tripTypes, tripType, setTripType,
-  departDates, departDate, setDepartDate,
+  departDate, setDepartDate,
   historyFrom, setHistoryFrom,
   historyTo, setHistoryTo,
 }) {
@@ -30,11 +30,53 @@ export default function SearchBar({
         </Field>
 
         <Field label="📅 Departure date">
-          <select value={departDate} onChange={e => setDepartDate(e.target.value)}>
-            {departDates.map(d => <option key={d}>{d}</option>)}
-          </select>
+          <input
+            type="date"
+            value={departDate}
+            onChange={e => setDepartDate(e.target.value)}
+          />
         </Field>
       </div>
+
+      <div className="searchbar-row searchbar-dates">
+        <Field label="History from">
+          <input
+            type="date"
+            value={historyFrom}
+            onChange={e => setHistoryFrom(e.target.value)}
+          />
+        </Field>
+
+        <Field label="History to">
+          <input
+            type="date"
+            value={historyTo}
+            onChange={e => setHistoryTo(e.target.value)}
+          />
+        </Field>
+
+        {(historyFrom || historyTo) && (
+          <button
+            className="clear-btn"
+            onClick={() => { setHistoryFrom(''); setHistoryTo('') }}
+          >
+            Clear dates
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Field({ label, children }) {
+  return (
+    <div className="field">
+      <label>{label}</label>
+      {children}
+    </div>
+  )
+}
+
 
       <div className="searchbar-row searchbar-dates">
         <Field label="History from">

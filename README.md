@@ -68,7 +68,6 @@ React app served at `http://localhost:5173`.
 flight-price-history-tracker/
 ├── api.py                  ← FastAPI backend (serves SQLite data to the React app)
 ├── cli.py                  ← Click CLI (add-route, list, poll, history, run-tracker)
-├── app.py                  ← (legacy Streamlit — replaced by React frontend)
 ├── start.sh                ← starts tracker + API + React dev server
 ├── config.toml             ← routes, thresholds, SMTP host/port (safe to commit)
 ├── .env                    ← SMTP credentials (gitignored — never commit)
