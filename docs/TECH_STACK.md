@@ -1,13 +1,23 @@
 # Tech Stack
 
-## Language
+## Backend Language
 
 **Python 3.11+**
 
 - Rich scraping and scheduling ecosystem
-- Streamlit requires no frontend knowledge
-- SQLite support is in the standard library
+- `tomllib` and `sqlite3` are standard library — zero extra deps for config and DB
 - Fast iteration for a local tool
+
+---
+
+## Frontend Language
+
+**React 18 + Vite**
+
+- Component-based UI with proper state management
+- Native `<input type="date">` and `<select>` — no third-party date picker needed
+- Vite dev server proxies `/api` to FastAPI — no CORS juggling during development
+- Hot module reload on save
 
 ---
 
@@ -41,8 +51,20 @@ Alternatives considered:
 
 - Zero setup — single file at `data/flights.db`
 - No server process
+- Additive schema (`CREATE TABLE IF NOT EXISTS`) — restarts never drop data
 - Queryable with any SQLite GUI (e.g. DB Browser for SQLite)
 - More than sufficient for years of price snapshots from a handful of routes
+
+---
+
+## API Server
+
+**[FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/)**
+
+- Minimal REST API between SQLite and the React frontend
+- Two endpoints: `GET /routes`, `GET /routes/{id}/history`
+- Auto-generated interactive docs at `http://localhost:8000/docs`
+- CORS restricted to `localhost:5173`
 
 ---
 
@@ -51,23 +73,19 @@ Alternatives considered:
 **[APScheduler](https://apscheduler.readthedocs.io/) 3.x**
 
 - In-process scheduler — no cron config, no separate daemon
-- `BlockingScheduler` keeps the process alive in the terminal
+- `BlockingScheduler` keeps the process alive
 - Interval jobs with configurable hours
-- Survives missed runs on wakeup (misfire grace time configurable)
-
-Alternative: plain `time.sleep` loop — simpler but no misfire handling and harder to extend.
+- Runs an immediate poll on startup before entering the schedule
 
 ---
 
-## Dashboard
+## Charts
 
-**[Streamlit](https://streamlit.io/)**
+**[Recharts](https://recharts.org/)**
 
-- Pure Python — no HTML/CSS/JS
-- Runs on `localhost` only
-- Built-in line charts via Altair/Plotly
-- Live reload on file save
-- Runs as a separate process from the scheduler
+- React-native charting library — no canvas manipulation
+- `LineChart` with `ReferenceLine` for the threshold marker
+- Custom tooltip component for date + time + price display
 
 ---
 
@@ -76,8 +94,8 @@ Alternative: plain `time.sleep` loop — simpler but no misfire handling and har
 **[Click](https://click.palletsprojects.com/)**
 
 - Declarative argument/option parsing
-- Clean help text auto-generated
-- Composable command groups (`cli.py add-route`, `cli.py run-tracker`, etc.)
+- Clean auto-generated help text
+- Composable command groups
 
 ---
 
@@ -85,33 +103,55 @@ Alternative: plain `time.sleep` loop — simpler but no misfire handling and har
 
 **Python `smtplib` + `email` (standard library)**
 
-- No third-party dependency for sending
+- No third-party dependency
 - Works with any SMTP provider
-- Gmail recommended: use an [App Password](https://support.google.com/accounts/answer/185833) (not your main password)
-- Config in `config.toml`: host, port, sender, password, recipient
+- Credentials loaded from environment variables (`SMTP_SENDER`, `SMTP_PASSWORD`, `SMTP_RECIPIENT`)
+- Gmail: use an [App Password](https://support.google.com/accounts/answer/185833), not your main password
+- Only alerts on the first snapshot below threshold — not on every subsequent poll
 
 ---
 
 ## Configuration
 
-**[TOML](https://toml.io/) via Python `tomllib` (stdlib, 3.11+)**
+**[TOML](https://toml.io/) via `tomllib` (stdlib, Python 3.11+)**
 
-- Human-readable config file
-- Supports arrays of tables for multiple routes
-- No parsing library needed in Python 3.11+
+- Human-readable, safe to commit (no credentials)
+- Routes defined as `[[routes]]` array of tables
+- SMTP credentials kept separately in `.env`
+
+---
+
+## Secrets
+
+**Environment variables via `.env`**
+
+- `SMTP_SENDER`, `SMTP_PASSWORD`, `SMTP_RECIPIENT`
+- Loaded by `start.sh` before any process starts (`source .env`)
+- `.env` is gitignored; `.env.example` is committed as a template
 
 ---
 
 ## Full Dependency List
 
+**Python (`requirements.txt`)**
 ```
 fast-flights       # Google Flights scraping
 apscheduler>=3.10  # background polling scheduler
-streamlit>=1.35    # local dashboard
 click>=8.0         # CLI
+fastapi>=0.111     # REST API for the React frontend
+uvicorn>=0.30      # ASGI server for FastAPI
 ```
 
-SQLite, `smtplib`, `email`, `tomllib` — all standard library, no install needed.
+`sqlite3`, `smtplib`, `email`, `tomllib` — standard library, no install needed.
+
+**JavaScript (`frontend/package.json`)**
+```
+react ^18          # UI framework
+react-dom ^18      # DOM renderer
+recharts ^2        # price charts
+vite ^5            # build tool + dev server
+@vitejs/plugin-react  # Vite React plugin
+```
 
 ---
 
@@ -119,9 +159,10 @@ SQLite, `smtplib`, `email`, `tomllib` — all standard library, no install neede
 
 | Skipped | Reason |
 |---|---|
-| Docker | Unnecessary complexity for a local tool |
+| Docker | Unnecessary complexity for a local-only tool |
 | PostgreSQL / MySQL | SQLite is sufficient; no server needed |
 | Celery / Redis | APScheduler covers scheduling without a broker |
-| FastAPI / Flask | No HTTP server needed; Streamlit handles the UI |
-| Pandas | Avoided to keep dependencies minimal; raw SQL is enough |
-| dotenv | `config.toml` serves the same purpose more readably |
+| Streamlit | Replaced by React — better date inputs and layout control |
+| Pandas | Raw SQL + JSON is enough; avoided a heavy dependency |
+| Tailwind CSS | Plain CSS variables cover the styling needs without a build step |
+| dotenv (Python) | `start.sh` sources `.env` directly before launching processes |

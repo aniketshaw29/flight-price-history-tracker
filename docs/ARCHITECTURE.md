@@ -2,40 +2,47 @@
 
 ## Overview
 
-The tracker is a single-machine Python application with four loosely coupled layers: data collection, storage, alerting, and presentation. There is no server, no network exposure, and no external dependencies beyond the scraping library and email SMTP.
+The tracker is a three-process local application: a Python background scheduler that collects prices, a FastAPI server that exposes the SQLite data, and a React frontend that the user interacts with. All three run on localhost via `./start.sh`.
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    config.toml                          │
-│         (routes, thresholds, email, interval)           │
-└────────────────────────┬────────────────────────────────┘
-                         │ read at startup + each poll
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│                  scheduler.py                           │
-│           APScheduler — fires every N hours             │
-│     loops over routes → calls scraper → stores → alerts │
-└────┬───────────────────┬──────────────────┬─────────────┘
-     │                   │                  │
-     ▼                   ▼                  ▼
-┌─────────┐       ┌──────────┐       ┌──────────────┐
-│scraper.py│      │  db.py   │       │  alerts.py   │
-│          │      │          │       │              │
-│fast-     │      │ SQLite   │       │ smtplib      │
-│flights   │      │flights.db│       │ email alert  │
-│(Google   │      │          │       │ on threshold │
-│Flights)  │      │          │       │ breach       │
-└─────────┘       └────┬─────┘       └──────────────┘
-                       │ read history
-                       ▼
-              ┌─────────────────┐
-              │     app.py      │
-              │   Streamlit     │
-              │  price charts   │
-              │  per route      │
-              └─────────────────┘
-                       ▲
-                  browser (localhost)
+┌─────────────────────────────────────────────────────────────┐
+│                      config.toml                            │
+│          (routes, thresholds, smtp host/port, interval)     │
+│                       + .env                                │
+│          (SMTP_SENDER, SMTP_PASSWORD, SMTP_RECIPIENT)        │
+└───────────────────┬─────────────────────────────────────────┘
+                    │ read at startup
+                    ▼
+┌───────────────────────────────────┐
+│          scheduler.py             │
+│   APScheduler — every N hours     │
+│   poll → store → alert            │
+└──┬──────────────┬──────────────┬──┘
+   │              │              │
+   ▼              ▼              ▼
+┌──────────┐ ┌─────────┐ ┌────────────┐
+│scraper.py│ │  db.py  │ │ alerts.py  │
+│          │ │         │ │            │
+│fast-     │ │ SQLite  │ │ smtplib    │
+│flights   │ │  .db    │ │ reads creds│
+│(Google   │ │         │ │ from env   │
+│Flights)  │ └────┬────┘ └────────────┘
+└──────────┘      │ read via SQL
+                  ▼
+          ┌──────────────┐
+          │    api.py    │
+          │   FastAPI    │
+          │ :8000        │
+          └──────┬───────┘
+                 │ JSON (proxied via /api)
+                 ▼
+          ┌──────────────┐
+          │  frontend/   │
+          │    React     │
+          │    :5173     │
+          └──────────────┘
+                 ▲
+           browser (localhost)
 ```
 
 ---
@@ -43,32 +50,46 @@ The tracker is a single-machine Python application with four loosely coupled lay
 ## Components
 
 ### `config.toml`
-Single source of truth. Defines routes to watch, per-route thresholds, email credentials, and poll interval. Edited by hand or via `cli.py add-route`.
+Defines routes to watch, per-route thresholds, poll interval, and SMTP host/port. No credentials — those live in `.env`. Safe to commit to git.
+
+### `.env`
+Holds `SMTP_SENDER`, `SMTP_PASSWORD`, `SMTP_RECIPIENT`. Gitignored. Loaded by `start.sh` before any process starts.
 
 ### `cli.py`
-Thin Click-based CLI. Entry point for all user interactions: adding/removing routes, triggering manual polls, viewing history. Does not contain business logic — delegates to the other modules.
+Click-based CLI. Manages routes (`add-route`, `list-routes`, `remove-route`), triggers manual polls, prints history, and starts the scheduler (`run-tracker`). Delegates all logic to the `tracker/` package.
 
 ### `tracker/scraper.py`
-Wraps `fast-flights` to fetch the current cheapest price for a route + date. Returns a plain `float`. Handles one-way and round-trip by passing the appropriate parameters. This is the only component that makes outbound network requests.
+Wraps `fast-flights` to fetch the current cheapest price for a route + date. Returns a plain `float` or `None` on failure. Handles one-way and round-trip. Only component that makes outbound network requests.
 
 ### `tracker/db.py`
-All SQLite interactions. Two tables:
+All SQLite interactions. Schema: `routes` table (what to track) and `price_snapshots` table (time-series price data). Uses `CREATE TABLE IF NOT EXISTS` — additive only, never drops data.
 
-| Table | Purpose |
-|---|---|
-| `routes` | Persists tracked routes from config (id, origin, dest, dates, trip type, threshold) |
-| `price_snapshots` | One row per poll per route (route_id, price, fetched_at) |
-
-Exposes simple functions: `upsert_route`, `insert_snapshot`, `get_history`, `get_latest_price`.
+Key functions: `init_db`, `upsert_route`, `get_active_routes`, `insert_snapshot`, `get_history`, `get_latest_two`.
 
 ### `tracker/scheduler.py`
-APScheduler `BlockingScheduler` that runs the poll job on the configured interval. Each job execution: loads routes from DB → scrapes price → writes snapshot → checks threshold → fires alert if needed.
+APScheduler `BlockingScheduler`. On each interval: reads active routes from DB → scrapes price → writes snapshot → checks if price crossed threshold → fires alert if so. Runs an immediate poll on startup before entering the schedule.
 
 ### `tracker/alerts.py`
-Sends an email via `smtplib` + `config.toml` SMTP credentials when a new snapshot price is below the route threshold. Only sends if the *previous* snapshot was above threshold (avoids repeated emails for the same drop).
+Sends email via `smtplib` when a new snapshot price drops below threshold and the previous snapshot was above it (prevents repeated emails for a sustained low price). Reads SMTP credentials from environment variables — raises `EnvironmentError` at send time if any are missing.
 
-### `app.py`
-Streamlit app. Reads directly from `flights.db`. Sidebar lets you filter by origin, destination, trip type, departure date, and a history date-window. Main area shows 5 key metrics and a price-over-time line chart with threshold marker. Raw data in a collapsible table. Runs separately from the scheduler via `./start.sh`.
+### `api.py`
+FastAPI app with two endpoints:
+- `GET /routes` — returns all active routes from SQLite
+- `GET /routes/{id}/history` — returns price snapshots for a route, with optional `from_date` / `to_date` query params
+
+CORS is restricted to `http://localhost:5173`.
+
+### `frontend/`
+React + Vite app. Vite proxies `/api/*` to `http://localhost:8000` so the React code just calls `/api/routes` etc. without hardcoding ports.
+
+Components:
+| File | Purpose |
+|---|---|
+| `App.jsx` | State, data fetching, cascading filter logic |
+| `SearchBar.jsx` | From / To / Trip type / Departure date dropdowns + date range pickers |
+| `MetricsRow.jsx` | 5 metric cards (current, previous, lowest, highest, threshold status) |
+| `PriceChart.jsx` | Recharts `LineChart` with threshold `ReferenceLine` |
+| `PriceTable.jsx` | Collapsible scrollable table with per-row delta column |
 
 ---
 
@@ -77,18 +98,18 @@ Streamlit app. Reads directly from `flights.db`. Sidebar lets you filter by orig
 ```
 scheduler fires
     │
-    ├─ db.get_all_routes()
+    ├─ db.get_active_routes()
     │
     └─ for each route:
            │
-           ├─ scraper.fetch_price(origin, dest, depart, return, trip_type)
-           │       └─ returns float or None (if scrape fails)
+           ├─ scraper.fetch_price(route)
+           │       └─ returns float (INR) or None
            │
-           ├─ db.insert_snapshot(route_id, price, now)
+           ├─ db.insert_snapshot(route_id, price)
            │
-           └─ alerts.check_and_send(route, price, db.get_prev_snapshot())
-                   └─ if price < threshold AND prev_price >= threshold:
-                          send email
+           └─ db.get_latest_two(route_id)
+                   └─ if price < threshold AND prev >= threshold:
+                          alerts.send_alert(...)
 ```
 
 ---
@@ -96,7 +117,7 @@ scheduler fires
 ## SQLite Schema
 
 ```sql
-CREATE TABLE routes (
+CREATE TABLE IF NOT EXISTS routes (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     origin      TEXT NOT NULL,
     destination TEXT NOT NULL,
@@ -107,26 +128,32 @@ CREATE TABLE routes (
     active      INTEGER DEFAULT 1
 );
 
-CREATE TABLE price_snapshots (
+CREATE TABLE IF NOT EXISTS price_snapshots (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     route_id    INTEGER NOT NULL REFERENCES routes(id),
     price       REAL NOT NULL,
     fetched_at  TEXT NOT NULL       -- ISO 8601 UTC
 );
+
+CREATE INDEX IF NOT EXISTS idx_snapshots_route
+    ON price_snapshots(route_id, fetched_at);
 ```
+
+Schema is **additive only** — `IF NOT EXISTS` on every statement means restarts never lose data.
 
 ---
 
 ## Error Handling
 
-- Scrape failures (rate-limited, layout change, network error) log a warning and skip the snapshot — no crash, scheduler continues.
-- Email failures log an error but do not stop the scheduler.
-- Config file missing or malformed raises a clear error at startup with the offending key.
+- Scrape failures (rate-limited, layout change, network error) log a warning and skip the snapshot — scheduler continues with the next route.
+- Email failures log an error but do not crash the scheduler.
+- Missing `.env` credentials raise `EnvironmentError` at alert-send time (not at startup), so the tracker still runs and collects data even without email configured.
+- Config file missing or malformed raises a clear error at startup.
 
 ---
 
 ## Limitations
 
 - `fast-flights` scrapes Google Flights and may break if Google changes its layout.
-- Prices are point-in-time snapshots; the tracker does not guarantee it captures the absolute lowest price between polls.
-- Email credentials are stored in plaintext in `config.toml` — keep it out of version control (add `config.toml` to `.gitignore`).
+- Price history only goes back to when you first added a route — there is no historical data before tracking began.
+- Prices are point-in-time snapshots; drops between polls are not captured.

@@ -8,52 +8,57 @@ A local-only tool that tracks flight prices over time, stores history in SQLite,
 
 ## Features
 
-- Track one-way and round-trip routes
+- Track one-way and round-trip routes (CCU ↔ BLR and any other pair)
 - Configurable polling interval (default: every 6 hours)
-- Price history stored locally in SQLite
-- Streamlit dashboard to visualize price trends
+- Price history stored locally in SQLite — accumulates forever, never dropped
+- React dashboard to visualize price trends with interactive filters
 - Email alerts when price drops below your threshold
 - CLI to manage routes, view history, and trigger manual polls
 
 ---
 
-## Dashboard
-
-Open `http://localhost:8501` after running `./start.sh`.
-
-**Sidebar filters:**
-- **From / To** — pick origin and destination airport (e.g. CCU → BLR)
-- **Trip type** — one-way or round-trip
-- **Departure date** — which specific flight date to inspect
-- **History window** — date range to zoom the chart into
-
-**Main view:**
-- 5 metrics: current price, lowest ever, highest ever, your threshold, and whether current price is above/below threshold
-- Line chart with red dashed threshold line
-- Collapsible raw data table
+## Quick Start
 
 ```bash
 # 1. Create and activate virtual environment
 python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 
-# 2. Install dependencies
+# 2. Install Python dependencies
 pip install -r requirements.txt
 
-# 3. Set email credentials
+# 3. Set email credentials (never committed)
 cp .env.example .env
-# edit .env with your Gmail + App Password
-source .env
+# edit .env — fill in SMTP_SENDER, SMTP_PASSWORD, SMTP_RECIPIENT
 
-# 4. Edit config.toml — update depart_date / return_date and thresholds
+# 4. Edit config.toml — set your routes, departure dates, thresholds
 
-# 5. Start the tracker (polls in background)
-python cli.py run-tracker
-
-# 6. Open the dashboard in a second terminal
-source .venv/bin/activate && source .env
-streamlit run app.py
+# 5. Run everything with one command
+./start.sh
 ```
+
+Then open **http://localhost:5173**
+
+---
+
+## Dashboard
+
+React app served at `http://localhost:5173`.
+
+**Search bar (top of page):**
+| Control | Type | Description |
+|---|---|---|
+| From | Dropdown | Origin airport (e.g. CCU) |
+| To | Dropdown | Destination — cascades from From |
+| Trip type | Dropdown | one-way or round-trip |
+| Departure date | Dropdown | Which tracked flight date to view |
+| History from | Date picker | Start of history window |
+| History to | Date picker | End of history window |
+
+**Main view:**
+- 5 metrics: current price, previous price, lowest ever, highest ever, threshold status
+- Price line chart with red dashed threshold line and rich tooltip (date + time + price)
+- Collapsible raw data table with per-row price change column
 
 ---
 
@@ -61,25 +66,42 @@ streamlit run app.py
 
 ```
 flight-price-history-tracker/
-├── tracker/
-│   ├── db.py           # SQLite schema and query helpers
-│   ├── scraper.py      # Google Flights price fetching via fast-flights
-│   ├── scheduler.py    # APScheduler polling loop
-│   └── alerts.py       # Email alert logic
-├── app.py              # Streamlit dashboard
-├── cli.py              # CLI entrypoint (add-route, list, run, history)
-├── config.toml         # Routes, alert thresholds, email settings, poll interval
+├── api.py                  ← FastAPI backend (serves SQLite data to the React app)
+├── cli.py                  ← Click CLI (add-route, list, poll, history, run-tracker)
+├── app.py                  ← (legacy Streamlit — replaced by React frontend)
+├── start.sh                ← starts tracker + API + React dev server
+├── config.toml             ← routes, thresholds, SMTP host/port (safe to commit)
+├── .env                    ← SMTP credentials (gitignored — never commit)
+├── .env.example            ← template for .env
 ├── requirements.txt
+├── tracker/
+│   ├── db.py               ← SQLite schema + all queries
+│   ├── scraper.py          ← fast-flights price fetch + price parsing
+│   ├── scheduler.py        ← APScheduler poll loop
+│   └── alerts.py           ← email via smtplib (reads creds from env)
+├── frontend/               ← React + Vite app
+│   ├── package.json
+│   ├── vite.config.js      ← proxies /api → localhost:8000
+│   └── src/
+│       ├── App.jsx
+│       ├── components/
+│       │   ├── SearchBar.jsx
+│       │   ├── MetricsRow.jsx
+│       │   ├── PriceChart.jsx
+│       │   └── PriceTable.jsx
+│       └── index.css
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   └── TECH_STACK.md
 └── data/
-    └── flights.db      # SQLite database (auto-created)
+    └── flights.db          ← SQLite database (auto-created, gitignored)
 ```
 
 ---
 
 ## Configuration (`config.toml`)
+
+Safe to commit — no credentials here.
 
 ```toml
 [tracker]
@@ -88,18 +110,34 @@ poll_interval_hours = 6
 [email]
 smtp_host = "smtp.gmail.com"
 smtp_port = 587
-sender = "you@gmail.com"
-password = "your-app-password"   # use a Gmail App Password, not your main password
-recipient = "you@gmail.com"
+# credentials come from .env
 
+# Home → Work  (Kolkata → Bangalore)
 [[routes]]
-origin      = "SFO"
-destination = "JFK"
+origin      = "CCU"
+destination = "BLR"
+depart_date = "2026-07-01"
+trip_type   = "one-way"
+threshold   = 4000
+
+# Work → Home  (Bangalore → Kolkata)
+[[routes]]
+origin      = "BLR"
+destination = "CCU"
 depart_date = "2026-07-10"
-return_date = "2026-07-20"     # omit for one-way
-trip_type   = "round-trip"     # "round-trip" or "one-way"
-threshold   = 400              # alert if price drops below this (USD)
+trip_type   = "one-way"
+threshold   = 4000
 ```
+
+## Credentials (`.env`)
+
+```bash
+SMTP_SENDER=you@gmail.com
+SMTP_PASSWORD=your-gmail-app-password   # Gmail App Password, not your main password
+SMTP_RECIPIENT=you@gmail.com
+```
+
+Use a [Gmail App Password](https://support.google.com/accounts/answer/185833) — Settings → Security → 2-Step Verification → App Passwords.
 
 ---
 
@@ -108,11 +146,22 @@ threshold   = 400              # alert if price drops below this (USD)
 | Command | Description |
 |---|---|
 | `python cli.py add-route` | Add a new route to track |
-| `python cli.py list-routes` | Show all tracked routes |
-| `python cli.py remove-route <id>` | Stop tracking a route |
+| `python cli.py list-routes` | Show all active routes |
+| `python cli.py remove-route <id>` | Deactivate a route |
 | `python cli.py poll` | Manually trigger a price check now |
-| `python cli.py history <id>` | Print price history for a route |
-| `python cli.py run-tracker` | Start background scheduler |
+| `python cli.py history <id>` | Print full price log for a route |
+| `python cli.py run-tracker` | Start background scheduler (used by start.sh) |
+
+---
+
+## API
+
+FastAPI runs at `http://localhost:8000`. Interactive docs at `http://localhost:8000/docs`.
+
+| Endpoint | Description |
+|---|---|
+| `GET /routes` | List all active routes |
+| `GET /routes/{id}/history` | Price snapshots for a route (optional `from_date`, `to_date` params) |
 
 ---
 
