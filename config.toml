@@ -1,0 +1,37 @@
+[tracker]
+poll_interval_hours = 6
+
+[email]
+smtp_host = "smtp.gmail.com"
+smtp_port = 587
+# sender, password, and recipient come from env vars — see .env.example
+
+# ── Routes ────────────────────────────────────────────────────────────────────
+# trip_type: "one-way" or "round-trip"
+# threshold: alert when price drops below this (INR)
+# return_date: required for round-trip, omit for one-way
+
+# Home → Work  (Kolkata → Bangalore)
+[[routes]]
+origin      = "CCU"
+destination = "BLR"
+depart_date = "2026-07-01"
+trip_type   = "one-way"
+threshold   = 4000
+
+# Work → Home  (Bangalore → Kolkata)
+[[routes]]
+origin      = "BLR"
+destination = "CCU"
+depart_date = "2026-07-10"
+trip_type   = "one-way"
+threshold   = 4000
+
+# Round-trip: Kolkata → Bangalore → Kolkata
+[[routes]]
+origin      = "CCU"
+destination = "BLR"
+depart_date = "2026-07-01"
+return_date = "2026-07-10"
+trip_type   = "round-trip"
+threshold   = 7500

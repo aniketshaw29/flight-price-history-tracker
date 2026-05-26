@@ -1,5 +1,5 @@
-config.toml
 .env
+.venv/
 data/
 *.db
 __pycache__/

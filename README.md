@@ -20,18 +20,25 @@ A local-only tool that tracks flight prices over time, stores history in SQLite,
 ## Quick Start
 
 ```bash
-# 1. Install dependencies
+# 1. Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 2. Configure routes and email in config.toml
+# 3. Set email credentials
+cp .env.example .env
+# edit .env with your Gmail + App Password
+source .env
 
-# 3. Add a route
-python cli.py add-route --origin SFO --dest JFK --depart 2026-07-10 --return 2026-07-20 --type round-trip --threshold 400
+# 4. Edit config.toml — update depart_date / return_date and thresholds
 
-# 4. Start the tracker (polls in background)
+# 5. Start the tracker (polls in background)
 python cli.py run-tracker
 
-# 5. Open the dashboard (separate terminal)
+# 6. Open the dashboard in a second terminal
+source .venv/bin/activate && source .env
 streamlit run app.py
 ```
 
