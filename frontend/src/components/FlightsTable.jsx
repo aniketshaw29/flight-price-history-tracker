@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react'
+import FlightHistoryModal from './FlightHistoryModal'
 import './FlightsTable.css'
 
 const fmt = n => n != null ? `₹${Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '—'
 
-export default function FlightsTable({ routeId }) {
+export default function FlightsTable({ routeId, threshold, refreshKey, onWatchChange }) {
   const [flights, setFlights]     = useState([])
+  const [watched, setWatched]     = useState([])
   const [nonstop, setNonstop]     = useState(false)
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState(null)
   const [fetchedAt, setFetchedAt] = useState(null)
+  const [selected, setSelected]   = useState(null)
 
   useEffect(() => {
     if (!routeId) return
@@ -24,6 +27,28 @@ export default function FlightsTable({ routeId }) {
       .catch(() => { setError('Failed to load flights.'); setLoading(false) })
   }, [routeId, nonstop])
 
+  useEffect(() => {
+    if (!routeId) return
+    fetch(`/api/routes/${routeId}/watched`)
+      .then(r => r.json())
+      .then(setWatched)
+      .catch(() => {})
+  }, [routeId, refreshKey])
+
+  function watchedIdFor(flight) {
+    const w = watched.find(w =>
+      w.airline    === flight.airline &&
+      w.departure  === flight.departure &&
+      w.arrival    === flight.arrival
+    )
+    return w?.id ?? null
+  }
+
+  function handleWatchChange() {
+    fetch(`/api/routes/${routeId}/watched`).then(r => r.json()).then(setWatched)
+    onWatchChange?.()
+  }
+
   const fmtTime = iso => {
     if (!iso) return '—'
     const d = new Date(iso)
@@ -35,15 +60,9 @@ export default function FlightsTable({ routeId }) {
       <div className="ft-header">
         <h3 className="ft-title">Available Flights</h3>
         <div className="ft-controls">
-          {fetchedAt && (
-            <span className="ft-timestamp">as of {fmtTime(fetchedAt)}</span>
-          )}
+          {fetchedAt && <span className="ft-timestamp">as of {fmtTime(fetchedAt)}</span>}
           <label className="ft-toggle">
-            <input
-              type="checkbox"
-              checked={nonstop}
-              onChange={e => setNonstop(e.target.checked)}
-            />
+            <input type="checkbox" checked={nonstop} onChange={e => setNonstop(e.target.checked)} />
             Nonstop only
           </label>
         </div>
@@ -55,13 +74,14 @@ export default function FlightsTable({ routeId }) {
         <div className="ft-empty">Loading flights…</div>
       ) : flights.length === 0 ? (
         <div className="ft-empty">
-          {nonstop ? 'No nonstop flights found for the latest poll.' : 'No flight data for the latest poll yet.'}
+          {nonstop ? 'No nonstop flights found.' : 'No flight data for the latest poll yet.'}
         </div>
       ) : (
         <div className="ft-scroll">
           <table className="ft-table">
             <thead>
               <tr>
+                <th></th>
                 <th>Airline</th>
                 <th>Departure</th>
                 <th>Arrival</th>
@@ -71,26 +91,48 @@ export default function FlightsTable({ routeId }) {
               </tr>
             </thead>
             <tbody>
-              {flights.map((f, i) => (
-                <tr key={i} className={i === 0 ? 'ft-cheapest' : ''}>
-                  <td className="ft-airline">{f.airline || '—'}</td>
-                  <td>{f.departure || '—'}</td>
-                  <td>{f.arrival || '—'}</td>
-                  <td className="ft-duration">{f.duration || '—'}</td>
-                  <td className="ft-stops">
-                    {f.stops === 0
-                      ? <span className="ft-nonstop">Nonstop</span>
-                      : `${f.stops} stop${f.stops > 1 ? 's' : ''}`}
-                  </td>
-                  <td className="ft-price-col">
-                    <span className="ft-price">{fmt(f.price)}</span>
-                    {i === 0 && <span className="ft-badge">Cheapest</span>}
-                  </td>
-                </tr>
-              ))}
+              {flights.map((f, i) => {
+                const wid = watchedIdFor(f)
+                return (
+                  <tr
+                    key={i}
+                    className={`ft-row ${i === 0 ? 'ft-cheapest' : ''} ${wid ? 'ft-watched' : ''}`}
+                    onClick={() => setSelected({ flight: f, watchedId: wid })}
+                    title="Click to view price history"
+                  >
+                    <td className="ft-watch-col">
+                      {wid && <span className="ft-saved-dot" title="Saved">★</span>}
+                    </td>
+                    <td className="ft-airline">{f.airline || '—'}</td>
+                    <td>{f.departure || '—'}</td>
+                    <td>{f.arrival || '—'}</td>
+                    <td className="ft-duration">{f.duration || '—'}</td>
+                    <td className="ft-stops">
+                      {f.stops === 0
+                        ? <span className="ft-nonstop">Nonstop</span>
+                        : `${f.stops} stop${f.stops > 1 ? 's' : ''}`}
+                    </td>
+                    <td className="ft-price-col">
+                      <span className="ft-price">{fmt(f.price)}</span>
+                      {i === 0 && <span className="ft-badge">Cheapest</span>}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
+      )}
+
+      {selected && (
+        <FlightHistoryModal
+          flight={selected.flight}
+          routeId={routeId}
+          threshold={threshold}
+          watchedId={selected.watchedId}
+          onClose={() => setSelected(null)}
+          onWatchChange={handleWatchChange}
+        />
       )}
     </div>
   )

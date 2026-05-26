@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import SearchBar    from '../components/SearchBar'
-import MetricsRow   from '../components/MetricsRow'
-import PriceChart   from '../components/PriceChart'
-import PriceTable   from '../components/PriceTable'
-import FlightsTable from '../components/FlightsTable'
+import SearchBar      from '../components/SearchBar'
+import MetricsRow     from '../components/MetricsRow'
+import PriceChart     from '../components/PriceChart'
+import PriceTable     from '../components/PriceTable'
+import FlightsTable   from '../components/FlightsTable'
+import WatchedFlights from '../components/WatchedFlights'
 import RouteFormModal from '../components/RouteFormModal'
 import './RoutePage.css'
 
@@ -23,6 +24,7 @@ export default function RoutePage() {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState(null)
   const [showEdit, setShowEdit] = useState(false)
+  const [watchKey, setWatchKey] = useState(0)
 
   useEffect(() => {
     fetch('/api/routes')
@@ -135,7 +137,18 @@ threshold   = 4000`}</pre>
                   />
                   <PriceChart history={history} threshold={selectedRoute.threshold} />
                   <PriceTable history={history} />
-                  <FlightsTable routeId={selectedRoute.id} />
+                  <WatchedFlights
+                    routeId={selectedRoute.id}
+                    threshold={selectedRoute.threshold}
+                    refreshKey={watchKey}
+                    onWatchChange={() => setWatchKey(k => k + 1)}
+                  />
+                  <FlightsTable
+                    routeId={selectedRoute.id}
+                    threshold={selectedRoute.threshold}
+                    refreshKey={watchKey}
+                    onWatchChange={() => setWatchKey(k => k + 1)}
+                  />
                 </>
           }
 

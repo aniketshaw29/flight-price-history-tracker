@@ -118,6 +118,44 @@ def trigger_poll(background_tasks: BackgroundTasks):
     return {"ok": True}
 
 
+@app.get("/routes/{route_id}/flights/history")
+def flight_price_history(
+    route_id: int,
+    airline:   str = Query(...),
+    departure: str = Query(...),
+    arrival:   str = Query(...),
+):
+    rows = db.get_flight_history(route_id, airline, departure, arrival)
+    return [dict(r) for r in rows]
+
+
+@app.get("/routes/{route_id}/watched")
+def get_watched(route_id: int):
+    rows = db.get_watched_flights(route_id)
+    return [dict(r) for r in rows]
+
+
+class WatchBody(BaseModel):
+    airline:   str
+    departure: str
+    arrival:   str
+    duration:  str | None = None
+    stops:     int | None = None
+
+
+@app.post("/routes/{route_id}/watched", status_code=201)
+def watch_flight(route_id: int, body: WatchBody):
+    watched_id = db.add_watched_flight(
+        route_id, body.airline, body.departure, body.arrival, body.duration
+    )
+    return {"id": watched_id, "route_id": route_id, **body.model_dump()}
+
+
+@app.delete("/watched/{watched_id}", status_code=204)
+def unwatch_flight(watched_id: int):
+    db.remove_watched_flight(watched_id)
+
+
 class ThresholdUpdate(BaseModel):
     threshold: float
 

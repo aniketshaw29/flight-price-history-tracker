@@ -134,7 +134,27 @@
   font-size: 0.95rem;
 }
 
-.ft-badge {
+.ft-row {
+  cursor: pointer;
+}
+
+.ft-watch-col {
+  width: 1.5rem;
+  text-align: center;
+  padding: 0.65rem 0.4rem !important;
+}
+
+.ft-saved-dot {
+  color: #f59e0b;
+  font-size: 0.9rem;
+}
+
+.ft-watched td {
+  background: #fffbeb;
+}
+.ft-watched:hover td {
+  background: #fef3c7;
+}
   display: inline-block;
   margin-left: 0.5rem;
   background: var(--green);

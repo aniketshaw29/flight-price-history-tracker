@@ -45,6 +45,19 @@ def init_db():
 
             CREATE INDEX IF NOT EXISTS idx_options_route
                 ON flight_options(route_id, fetched_at);
+
+            CREATE TABLE IF NOT EXISTS watched_flights (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                route_id   INTEGER NOT NULL REFERENCES routes(id),
+                airline    TEXT NOT NULL,
+                departure  TEXT NOT NULL,
+                arrival    TEXT NOT NULL,
+                duration   TEXT,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_watched_unique
+                ON watched_flights(route_id, airline, departure, arrival);
         """)
 
 
@@ -191,5 +204,45 @@ def get_latest_two(route_id):
         return conn.execute(
             """SELECT price FROM price_snapshots
                WHERE route_id=? ORDER BY fetched_at DESC LIMIT 2""",
+            (route_id,),
+        ).fetchall()
+
+
+def get_flight_history(route_id, airline, departure, arrival):
+    with _connect() as conn:
+        return conn.execute(
+            """SELECT fetched_at, price FROM flight_options
+               WHERE route_id=? AND airline=? AND departure=? AND arrival=?
+               ORDER BY fetched_at""",
+            (route_id, airline, departure, arrival),
+        ).fetchall()
+
+
+def add_watched_flight(route_id, airline, departure, arrival, duration=None):
+    now = datetime.now(timezone.utc).isoformat()
+    with _connect() as conn:
+        conn.execute(
+            """INSERT OR IGNORE INTO watched_flights
+               (route_id, airline, departure, arrival, duration, created_at)
+               VALUES (?,?,?,?,?,?)""",
+            (route_id, airline, departure, arrival, duration, now),
+        )
+        row = conn.execute(
+            """SELECT id FROM watched_flights
+               WHERE route_id=? AND airline=? AND departure=? AND arrival=?""",
+            (route_id, airline, departure, arrival),
+        ).fetchone()
+        return row["id"] if row else None
+
+
+def remove_watched_flight(watched_id):
+    with _connect() as conn:
+        conn.execute("DELETE FROM watched_flights WHERE id=?", (watched_id,))
+
+
+def get_watched_flights(route_id):
+    with _connect() as conn:
+        return conn.execute(
+            "SELECT * FROM watched_flights WHERE route_id=? ORDER BY created_at",
             (route_id,),
         ).fetchall()

@@ -1,0 +1,129 @@
+.fhm-box {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2);
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 640px;
+  margin: 1rem;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.fhm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.fhm-flight-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.fhm-airline {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.fhm-route {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.fhm-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.fhm-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.btn-watch {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-watch:hover:not(:disabled) { background: #1d4ed8; }
+.btn-watch:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-unwatch {
+  background: #f0fdf4;
+  color: var(--green);
+  border: 1px solid var(--green);
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-unwatch:hover:not(:disabled) { background: #dcfce7; }
+.btn-unwatch:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.fhm-current {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.fhm-price {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.fhm-down { color: var(--green); font-weight: 600; font-size: 0.9rem; }
+.fhm-up   { color: var(--danger); font-weight: 600; font-size: 0.9rem; }
+
+.fhm-empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.fhm-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.fhm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.fhm-table th {
+  background: #f8fafc;
+  text-align: left;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+}
+
+.fhm-table td {
+  padding: 0.55rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.fhm-table tbody tr:last-child td { border-bottom: none; }
+.fhm-table tbody tr:hover { background: #f8fafc; }
