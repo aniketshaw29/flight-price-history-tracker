@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import RouteFormModal from '../components/RouteFormModal'
 import './Dashboard.css'
@@ -6,19 +6,31 @@ import './Dashboard.css'
 const fmt = n => n != null ? `₹${Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '—'
 
 export default function Dashboard() {
-  const [routes, setRoutes]   = useState([])
-  const [error, setError]     = useState(null)
-  const [showAdd, setShowAdd] = useState(false)
+  const [routes, setRoutes]       = useState([])
+  const [error, setError]         = useState(null)
+  const [showAdd, setShowAdd]     = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const navigate = useNavigate()
 
-  function fetchRoutes() {
+  const fetchRoutes = useCallback(() => {
     fetch('/api/routes')
       .then(r => r.json())
       .then(setRoutes)
       .catch(() => setError('Cannot reach API — is the tracker running?'))
-  }
+  }, [])
 
-  useEffect(fetchRoutes, [])
+  useEffect(fetchRoutes, [fetchRoutes])
+
+  function handleRefresh() {
+    setRefreshing(true)
+    fetch('/api/poll', { method: 'POST' })
+      .catch(() => {})
+    // scraping takes ~10–30s per route; re-fetch after 20s
+    setTimeout(() => {
+      fetchRoutes()
+      setRefreshing(false)
+    }, 20000)
+  }
 
   function handleDelete(e, id) {
     e.stopPropagation()
@@ -34,6 +46,9 @@ export default function Dashboard() {
         <h1>✈️ Flight Price Tracker</h1>
         <span className="dash-sub">All tracked routes</span>
         <button className="btn-add-route" onClick={() => setShowAdd(true)}>＋ Add Route</button>
+        <button className="btn-refresh" onClick={handleRefresh} disabled={refreshing}>
+          {refreshing ? '⏳ Scraping…' : '↻ Refresh prices'}
+        </button>
       </header>
 
       {error && <div className="error-banner">{error}</div>}

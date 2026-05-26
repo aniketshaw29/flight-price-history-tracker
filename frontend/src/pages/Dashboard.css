@@ -62,6 +62,19 @@
 }
 .btn-add-route:hover { background: #1d4ed8; }
 
+.btn-refresh {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-refresh:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.btn-refresh:disabled { opacity: 0.6; cursor: not-allowed; }
+
 .route-card {
   background: var(--surface);
   border: 1px solid var(--border);

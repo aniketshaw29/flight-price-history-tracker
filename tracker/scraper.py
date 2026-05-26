@@ -1,7 +1,7 @@
 import logging
 import re
 
-from fast_flights import FlightData, Passengers, create_filter, get_flights
+from fast_flights import FlightData, Passengers, get_flights
 
 log = logging.getLogger(__name__)
 
@@ -12,9 +12,9 @@ def _parse_price(raw) -> float | None:
     if isinstance(raw, (int, float)):
         return float(raw)
     if isinstance(raw, str):
-        digits = _PRICE_RE.search(raw.replace(",", ""))
-        if digits:
-            return float(digits.group().replace(",", ""))
+        m = _PRICE_RE.search(raw.replace(",", ""))
+        if m:
+            return float(m.group().replace(",", ""))
     return None
 
 
@@ -31,35 +31,27 @@ def _parse_stops(raw) -> int:
     return 0
 
 
-def _build_filter(route):
+def fetch_all(route) -> list[dict]:
+    if not isinstance(route, dict):
+        route = dict(route)
+
     origin    = route["origin"]
     dest      = route["destination"]
     depart    = route["depart_date"]
-    ret       = route["return_date"]
+    ret       = route.get("return_date")
     trip_type = route["trip_type"]
 
     flight_data = [FlightData(date=depart, from_airport=origin, to_airport=dest)]
     if trip_type == "round-trip" and ret:
         flight_data.append(FlightData(date=ret, from_airport=dest, to_airport=origin))
 
-    return create_filter(
-        flight_data=flight_data,
-        trip=trip_type,
-        passengers=Passengers(adults=1),
-    )
-
-
-def fetch_all(route) -> list[dict]:
-    """
-    Fetch all available flights for a route.
-    Returns a list of flight dicts sorted by price, or [] on failure.
-    """
-    origin = route["origin"]
-    dest   = route["destination"]
-    depart = route["depart_date"]
-
     try:
-        result = get_flights(_build_filter(route), currency="INR")
+        result = get_flights(
+            flight_data=flight_data,
+            trip=trip_type,
+            passengers=Passengers(adults=1),
+            seat="economy",
+        )
         flights = []
         for f in result.flights:
             price = _parse_price(f.price)
@@ -74,6 +66,7 @@ def fetch_all(route) -> list[dict]:
                 "price":     price,
             })
         flights.sort(key=lambda x: x["price"])
+        log.info("Fetched %d flights for %s→%s on %s", len(flights), origin, dest, depart)
         return flights
 
     except Exception as exc:
@@ -82,8 +75,5 @@ def fetch_all(route) -> list[dict]:
 
 
 def fetch_price(route) -> float | None:
-    """Cheapest price — convenience wrapper around fetch_all."""
     flights = fetch_all(route)
-    if not flights:
-        return None
-    return min(f["price"] for f in flights)
+    return min(f["price"] for f in flights) if flights else None

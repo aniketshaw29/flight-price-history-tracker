@@ -61,10 +61,10 @@ Alternatives considered:
 
 **[FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/)**
 
-- Minimal REST API between SQLite and the React frontend
-- Two endpoints: `GET /routes`, `GET /routes/{id}/history`
-- Auto-generated interactive docs at `http://localhost:8000/docs`
-- CORS restricted to `localhost:5173`
+- REST API between SQLite and the React frontend
+- Endpoints: `GET /routes`, `POST /routes`, `PATCH /routes/{id}`, `DELETE /routes/{id}`, `GET /routes/{id}/history`, `GET /routes/{id}/options`, `PATCH /routes/{id}/threshold`
+- Auto-generated interactive docs at `http://localhost:4314/docs`
+- CORS restricted to `localhost:4142`
 
 ---
 
@@ -146,10 +146,11 @@ uvicorn>=0.30      # ASGI server for FastAPI
 
 **JavaScript (`frontend/package.json`)**
 ```
-react ^18          # UI framework
-react-dom ^18      # DOM renderer
-recharts ^2        # price charts
-vite ^5            # build tool + dev server
+react ^18             # UI framework
+react-dom ^18         # DOM renderer
+react-router-dom ^7   # multi-page routing (Dashboard + RoutePage)
+recharts ^2           # price charts
+vite ^5               # build tool + dev server
 @vitejs/plugin-react  # Vite React plugin
 ```
 

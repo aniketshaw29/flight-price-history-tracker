@@ -9,9 +9,11 @@ A local-only tool that tracks flight prices over time, stores history in SQLite,
 ## Features
 
 - Track one-way and round-trip routes (CCU ↔ BLR and any other pair)
+- Add, edit, and remove tracked routes directly from the UI — no config file editing needed
 - Configurable polling interval (default: every 6 hours)
 - Price history stored locally in SQLite — accumulates forever, never dropped
-- React dashboard to visualize price trends with interactive filters
+- All available flights stored per poll (not just the cheapest), with nonstop filter
+- React dashboard: route cards, price chart, metrics, price table, flights table
 - Email alerts when price drops below your threshold
 - CLI to manage routes, view history, and trigger manual polls
 
@@ -31,34 +33,34 @@ pip install -r requirements.txt
 cp .env.example .env
 # edit .env — fill in SMTP_SENDER, SMTP_PASSWORD, SMTP_RECIPIENT
 
-# 4. Edit config.toml — set your routes, departure dates, thresholds
+# 4. (Optional) Edit config.toml to seed initial routes
+# You can also add routes from the UI after starting
 
 # 5. Run everything with one command
 ./start.sh
 ```
 
-Then open **http://localhost:5173**
+Then open **http://localhost:4142**
 
 ---
 
 ## Dashboard
 
-React app served at `http://localhost:5173`.
+React app served at `http://localhost:4142`.
 
-**Search bar (top of page):**
-| Control | Type | Description |
-|---|---|---|
-| From | Dropdown | Origin airport (e.g. CCU) |
-| To | Dropdown | Destination — cascades from From |
-| Trip type | Dropdown | one-way or round-trip |
-| Departure date | Dropdown | Which tracked flight date to view |
-| History from | Date picker | Start of history window |
-| History to | Date picker | End of history window |
+**Dashboard (`/`):**
+- Grid of route cards showing origin → destination, latest price, threshold status
+- **＋ Add Route** button — opens a form to add any airport pair
+- Hover a card to reveal the **✕** delete button
+- Click any card to open its detail page
 
-**Main view:**
-- 5 metrics: current price, previous price, lowest ever, highest ever, threshold status
-- Price line chart with red dashed threshold line and rich tooltip (date + time + price)
-- Collapsible raw data table with per-row price change column
+**Route detail page (`/route/:id`):**
+- SearchBar: free-text airport inputs, trip type, departure date, history date range filter
+- **Edit route** button — edit origin, destination, dates, trip type, threshold
+- 5 metrics: current price, previous price, lowest ever, highest ever, alert threshold (click-to-edit)
+- Price line chart with red dashed threshold line
+- Collapsible price history table with per-row delta
+- Available flights table for the latest poll (nonstop-only toggle)
 
 ---
 
@@ -75,19 +77,26 @@ flight-price-history-tracker/
 ├── requirements.txt
 ├── tracker/
 │   ├── db.py               ← SQLite schema + all queries
-│   ├── scraper.py          ← fast-flights price fetch + price parsing
+│   ├── scraper.py          ← fast-flights: fetch_all() + fetch_price()
 │   ├── scheduler.py        ← APScheduler poll loop
 │   └── alerts.py           ← email via smtplib (reads creds from env)
 ├── frontend/               ← React + Vite app
 │   ├── package.json
-│   ├── vite.config.js      ← proxies /api → localhost:8000
+│   ├── vite.config.js      ← port 4142, proxies /api → localhost:4314
 │   └── src/
-│       ├── App.jsx
+│       ├── App.jsx          ← BrowserRouter shell
+│       ├── pages/
+│       │   ├── Dashboard.jsx      ← route card grid, add/delete routes
+│       │   ├── Dashboard.css
+│       │   ├── RoutePage.jsx      ← detail page with all charts and tables
+│       │   └── RoutePage.css
 │       ├── components/
-│       │   ├── SearchBar.jsx
-│       │   ├── MetricsRow.jsx
-│       │   ├── PriceChart.jsx
-│       │   └── PriceTable.jsx
+│       │   ├── SearchBar.jsx      ← airport inputs, dates, history filter
+│       │   ├── MetricsRow.jsx     ← 5 metric cards, threshold click-to-edit
+│       │   ├── PriceChart.jsx     ← Recharts line chart with threshold line
+│       │   ├── PriceTable.jsx     ← collapsible history table
+│       │   ├── FlightsTable.jsx   ← latest poll flights, nonstop toggle
+│       │   └── RouteFormModal.jsx ← add / edit route modal form
 │       └── index.css
 ├── docs/
 │   ├── ARCHITECTURE.md
@@ -100,7 +109,7 @@ flight-price-history-tracker/
 
 ## Configuration (`config.toml`)
 
-Safe to commit — no credentials here.
+Safe to commit — no credentials here. Routes defined here are seeded into the DB at startup. You can also manage routes entirely through the UI.
 
 ```toml
 [tracker]
@@ -155,12 +164,17 @@ Use a [Gmail App Password](https://support.google.com/accounts/answer/185833) �
 
 ## API
 
-FastAPI runs at `http://localhost:8000`. Interactive docs at `http://localhost:8000/docs`.
+FastAPI runs at `http://localhost:4314`. Interactive docs at `http://localhost:4314/docs`.
 
-| Endpoint | Description |
-|---|---|
-| `GET /routes` | List all active routes |
-| `GET /routes/{id}/history` | Price snapshots for a route (optional `from_date`, `to_date` params) |
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/routes` | All active routes with latest price |
+| POST | `/routes` | Add a new tracked route |
+| PATCH | `/routes/{id}` | Edit a route (all fields) |
+| DELETE | `/routes/{id}` | Deactivate a route |
+| GET | `/routes/{id}/history` | Price snapshots (`from_date`, `to_date` optional) |
+| GET | `/routes/{id}/options` | Latest poll's flights (`nonstop=true` optional) |
+| PATCH | `/routes/{id}/threshold` | Update alert threshold only |
 
 ---
 

@@ -1,11 +1,31 @@
-from fastapi import FastAPI, Query, HTTPException
+import logging
+import threading
+from contextlib import asynccontextmanager
+
+from fastapi import BackgroundTasks, FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from tracker import db
+from tracker import db, scheduler
 from tracker.db import _connect, update_threshold
 
-app = FastAPI(title="Flight Price Tracker API")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-8s %(name)s — %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+log = logging.getLogger("api")
+
+
+@asynccontextmanager
+async def lifespan(app):
+    db.init_db()
+    log.info("API started — triggering startup poll in background")
+    threading.Thread(target=scheduler.poll, daemon=True, name="startup-poll").start()
+    yield
+
+
+app = FastAPI(title="Flight Price Tracker API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -89,6 +109,13 @@ def get_history(
 def get_flight_options(route_id: int, nonstop: bool = Query(False)):
     rows = db.get_latest_flight_options(route_id, nonstop_only=nonstop)
     return [dict(r) for r in rows]
+
+
+@app.post("/poll")
+def trigger_poll(background_tasks: BackgroundTasks):
+    log.info("Manual poll triggered via API")
+    background_tasks.add_task(scheduler.poll)
+    return {"ok": True}
 
 
 class ThresholdUpdate(BaseModel):
