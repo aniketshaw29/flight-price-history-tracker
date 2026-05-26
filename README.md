@@ -17,7 +17,20 @@ A local-only tool that tracks flight prices over time, stores history in SQLite,
 
 ---
 
-## Quick Start
+## Dashboard
+
+Open `http://localhost:8501` after running `./start.sh`.
+
+**Sidebar filters:**
+- **From / To** — pick origin and destination airport (e.g. CCU → BLR)
+- **Trip type** — one-way or round-trip
+- **Departure date** — which specific flight date to inspect
+- **History window** — date range to zoom the chart into
+
+**Main view:**
+- 5 metrics: current price, lowest ever, highest ever, your threshold, and whether current price is above/below threshold
+- Line chart with red dashed threshold line
+- Collapsible raw data table
 
 ```bash
 # 1. Create and activate virtual environment

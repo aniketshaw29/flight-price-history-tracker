@@ -68,7 +68,7 @@ APScheduler `BlockingScheduler` that runs the poll job on the configured interva
 Sends an email via `smtplib` + `config.toml` SMTP credentials when a new snapshot price is below the route threshold. Only sends if the *previous* snapshot was above threshold (avoids repeated emails for the same drop).
 
 ### `app.py`
-Streamlit app. Reads directly from `flights.db`. Shows a route selector, a line chart of price over time, current price, lowest ever, and threshold line. Runs separately from the scheduler — start it in a second terminal.
+Streamlit app. Reads directly from `flights.db`. Sidebar lets you filter by origin, destination, trip type, departure date, and a history date-window. Main area shows 5 key metrics and a price-over-time line chart with threshold marker. Raw data in a collapsible table. Runs separately from the scheduler via `./start.sh`.
 
 ---
 
