@@ -48,7 +48,8 @@ def poll(config=None):
             price = min(f["price"] for f in flights)
             db.insert_snapshot(route["id"], price, fetched_at)
             db.insert_flight_options(route["id"], flights, fetched_at)
-            log.info("Route %d %s: ₹%,.0f (%d options)", route["id"], label, price, len(flights))
+            log.info("Route %d %s: ₹%s (%d options)",
+                     route["id"], label, f"{price:,.0f}", len(flights))
 
             prev_two = db.get_latest_two(route["id"])
             # prev_two[0] is the snapshot just inserted; [1] is the one before

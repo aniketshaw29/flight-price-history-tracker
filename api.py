@@ -1,4 +1,5 @@
 import logging
+import os
 import threading
 from contextlib import asynccontextmanager
 
@@ -25,11 +26,13 @@ async def lifespan(app):
     yield
 
 
+_frontend_origin = f"http://localhost:{os.getenv('FRONTEND_PORT', '4142')}"
+
 app = FastAPI(title="Flight Price Tracker API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4142"],
+    allow_origins=[_frontend_origin],
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["*"],
 )

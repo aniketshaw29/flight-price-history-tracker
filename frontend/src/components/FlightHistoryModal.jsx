@@ -20,6 +20,7 @@ export default function FlightHistoryModal({ flight, routeId, threshold, watched
   const [saving, setSaving]       = useState(false)
 
   useEffect(() => {
+    if (!flight?.airline || !flight?.departure || !flight?.arrival) return
     const p = new URLSearchParams({
       airline:   flight.airline   ?? '',
       departure: flight.departure ?? '',

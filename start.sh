@@ -30,6 +30,34 @@ if [ ! -d "$ROOT/frontend/node_modules" ]; then
   (cd "$ROOT/frontend" && npm install)
 fi
 
+# ── find a free port (tries preferred, increments until one is free) ──────────
+find_free_port() {
+  python3 - "$1" <<'EOF'
+import socket, sys
+port = int(sys.argv[1])
+while True:
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind(("", port))
+        s.close()
+        print(port)
+        break
+    except OSError:
+        port += 1
+EOF
+}
+
+API_PORT=$(find_free_port 4314)
+FRONTEND_PORT=$(find_free_port 4142)
+export API_PORT FRONTEND_PORT
+
+if [ "$API_PORT" != "4314" ]; then
+  echo "Port 4314 in use — using $API_PORT for API"
+fi
+if [ "$FRONTEND_PORT" != "4142" ]; then
+  echo "Port 4142 in use — using $FRONTEND_PORT for frontend"
+fi
+
 # ── kill all children on exit ─────────────────────────────────────────────────
 cleanup() {
   echo ""
@@ -45,18 +73,18 @@ python "$ROOT/cli.py" run-tracker &
 TRACKER_PID=$!
 
 # ── start FastAPI ─────────────────────────────────────────────────────────────
-echo "Starting API server on http://localhost:4314 ..."
-uvicorn api:app --app-dir "$ROOT" --port 4314 --reload &
+echo "Starting API server on http://localhost:$API_PORT ..."
+uvicorn api:app --app-dir "$ROOT" --port "$API_PORT" --reload &
 API_PID=$!
 
 # ── start React dev server ────────────────────────────────────────────────────
-echo "Starting React app on http://localhost:4142 ..."
-(cd "$ROOT/frontend" && npm run dev) &
+echo "Starting React app on http://localhost:$FRONTEND_PORT ..."
+(cd "$ROOT/frontend" && npm run dev -- --port "$FRONTEND_PORT") &
 FRONTEND_PID=$!
 
 echo ""
-echo "  App:  http://localhost:4142"
-echo "  API:  http://localhost:4314/docs"
+echo "  App:  http://localhost:$FRONTEND_PORT"
+echo "  API:  http://localhost:$API_PORT/docs"
 echo ""
 echo "Press Ctrl+C to stop everything."
 

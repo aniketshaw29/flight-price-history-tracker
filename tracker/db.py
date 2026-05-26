@@ -83,10 +83,6 @@ def upsert_route(origin, destination, depart_date, return_date, trip_type, thres
             (origin, destination, depart_date, trip_type),
         ).fetchone()
         if existing:
-            conn.execute(
-                "UPDATE routes SET threshold=?, active=1, return_date=? WHERE id=?",
-                (threshold, return_date, existing["id"]),
-            )
             return existing["id"]
         cursor = conn.execute(
             """INSERT INTO routes
