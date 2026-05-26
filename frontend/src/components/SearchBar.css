@@ -60,7 +60,23 @@
   min-width: 155px;
 }
 
-.clear-btn {
+.airport-input {
+  width: 80px;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.arrow {
+  font-size: 1.4rem;
+  color: var(--muted);
+  padding-top: 1.6rem;
+  user-select: none;
+}
+
+
   align-self: flex-end;
   height: 40px;
   padding: 0 1rem;

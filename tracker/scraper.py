@@ -9,7 +9,6 @@ _PRICE_RE = re.compile(r"[\d,]+")
 
 
 def _parse_price(raw) -> float | None:
-    """Convert a price value like '₹3,500' or 3500 to a plain float."""
     if isinstance(raw, (int, float)):
         return float(raw)
     if isinstance(raw, str):
@@ -19,39 +18,72 @@ def _parse_price(raw) -> float | None:
     return None
 
 
-def fetch_price(route) -> float | None:
-    """
-    Fetch the cheapest available price for a route dict / sqlite3.Row.
-    Returns a float (INR) or None if the scrape fails.
-    """
-    origin = route["origin"]
-    dest = route["destination"]
-    depart = route["depart_date"]
-    ret = route["return_date"]
+def _parse_stops(raw) -> int:
+    if isinstance(raw, int):
+        return raw
+    if isinstance(raw, str):
+        low = raw.lower()
+        if "nonstop" in low or low.strip() == "0":
+            return 0
+        m = re.search(r"\d+", raw)
+        if m:
+            return int(m.group())
+    return 0
+
+
+def _build_filter(route):
+    origin    = route["origin"]
+    dest      = route["destination"]
+    depart    = route["depart_date"]
+    ret       = route["return_date"]
     trip_type = route["trip_type"]
 
+    flight_data = [FlightData(date=depart, from_airport=origin, to_airport=dest)]
+    if trip_type == "round-trip" and ret:
+        flight_data.append(FlightData(date=ret, from_airport=dest, to_airport=origin))
+
+    return create_filter(
+        flight_data=flight_data,
+        trip=trip_type,
+        passengers=Passengers(adults=1),
+    )
+
+
+def fetch_all(route) -> list[dict]:
+    """
+    Fetch all available flights for a route.
+    Returns a list of flight dicts sorted by price, or [] on failure.
+    """
+    origin = route["origin"]
+    dest   = route["destination"]
+    depart = route["depart_date"]
+
     try:
-        flight_data = [FlightData(date=depart, from_airport=origin, to_airport=dest)]
-        if trip_type == "round-trip" and ret:
-            flight_data.append(FlightData(date=ret, from_airport=dest, to_airport=origin))
-
-        f = create_filter(
-            flight_data=flight_data,
-            trip=trip_type,
-            passengers=Passengers(adults=1),
-        )
-        result = get_flights(f, currency="INR")
-
-        # Try result.current_price first (cheapest banner price), then first flight
-        raw = getattr(result, "current_price", None)
-        if raw is None and result.flights:
-            raw = result.flights[0].price
-
-        price = _parse_price(raw)
-        if price is None:
-            log.warning("Could not parse price '%s' for %s→%s", raw, origin, dest)
-        return price
+        result = get_flights(_build_filter(route), currency="INR")
+        flights = []
+        for f in result.flights:
+            price = _parse_price(f.price)
+            if price is None:
+                continue
+            flights.append({
+                "airline":   getattr(f, "name",      None),
+                "departure": getattr(f, "departure", None),
+                "arrival":   getattr(f, "arrival",   None),
+                "duration":  getattr(f, "duration",  None),
+                "stops":     _parse_stops(getattr(f, "stops", 0)),
+                "price":     price,
+            })
+        flights.sort(key=lambda x: x["price"])
+        return flights
 
     except Exception as exc:
         log.warning("Scrape failed for %s→%s on %s: %s", origin, dest, depart, exc)
+        return []
+
+
+def fetch_price(route) -> float | None:
+    """Cheapest price — convenience wrapper around fetch_all."""
+    flights = fetch_all(route)
+    if not flights:
         return None
+    return min(f["price"] for f in flights)

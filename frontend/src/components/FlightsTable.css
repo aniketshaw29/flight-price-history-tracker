@@ -1,0 +1,149 @@
+.flights-table-wrap {
+  margin-top: 2rem;
+}
+
+.ft-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ft-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.ft-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.ft-timestamp {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.ft-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ft-toggle input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--primary);
+  width: 14px;
+  height: 14px;
+}
+
+.ft-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: var(--danger);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.88rem;
+}
+
+.ft-empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.ft-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.ft-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.ft-table th {
+  background: #f8fafc;
+  text-align: left;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.ft-table td {
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.ft-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ft-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.ft-cheapest td {
+  background: #f0fdf4;
+}
+
+.ft-cheapest:hover td {
+  background: #dcfce7;
+}
+
+.ft-airline {
+  font-weight: 600;
+}
+
+.ft-duration {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.ft-stops {
+  font-size: 0.85rem;
+}
+
+.ft-nonstop {
+  color: var(--green);
+  font-weight: 600;
+}
+
+.ft-price-col {
+  text-align: right !important;
+}
+
+.ft-price {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.ft-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  background: var(--green);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.1em 0.45em;
+  border-radius: 4px;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}

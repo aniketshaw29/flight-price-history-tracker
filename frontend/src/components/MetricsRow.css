@@ -25,7 +25,44 @@
   background: var(--primary-light);
 }
 
-.metric-label {
+.threshold-card {
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.threshold-card:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.threshold-card.editing {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.edit-hint {
+  font-weight: 400;
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 0.25rem;
+}
+
+.threshold-input {
+  width: 100%;
+  height: 2rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  border: 1px solid var(--primary);
+  border-radius: 5px;
+  padding: 0 0.5rem;
+  outline: none;
+  background: white;
+  color: var(--text);
+}
+
+
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;

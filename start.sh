@@ -45,18 +45,18 @@ python "$ROOT/cli.py" run-tracker &
 TRACKER_PID=$!
 
 # ── start FastAPI ─────────────────────────────────────────────────────────────
-echo "Starting API server on http://localhost:8000 ..."
-uvicorn api:app --app-dir "$ROOT" --port 8000 --reload &
+echo "Starting API server on http://localhost:4314 ..."
+uvicorn api:app --app-dir "$ROOT" --port 4314 --reload &
 API_PID=$!
 
 # ── start React dev server ────────────────────────────────────────────────────
-echo "Starting React app on http://localhost:5173 ..."
+echo "Starting React app on http://localhost:4142 ..."
 (cd "$ROOT/frontend" && npm run dev) &
 FRONTEND_PID=$!
 
 echo ""
-echo "  App:  http://localhost:5173"
-echo "  API:  http://localhost:8000/docs"
+echo "  App:  http://localhost:4142"
+echo "  API:  http://localhost:4314/docs"
 echo ""
 echo "Press Ctrl+C to stop everything."
 

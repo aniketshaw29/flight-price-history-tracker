@@ -1,31 +1,47 @@
 import './SearchBar.css'
 
+const TRIP_TYPES = ['one-way', 'round-trip']
+
 export default function SearchBar({
-  origins, origin, setOrigin,
-  dests, dest, setDest,
-  tripTypes, tripType, setTripType,
+  origin, setOrigin,
+  dest, setDest,
+  tripType, setTripType,
   departDate, setDepartDate,
   historyFrom, setHistoryFrom,
   historyTo, setHistoryTo,
 }) {
+  const toUpper = (setter) => (e) => setter(e.target.value.toUpperCase().slice(0, 3))
+
   return (
     <div className="searchbar">
       <div className="searchbar-row">
         <Field label="🛫 From">
-          <select value={origin} onChange={e => setOrigin(e.target.value)}>
-            {origins.map(o => <option key={o}>{o}</option>)}
-          </select>
+          <input
+            type="text"
+            value={origin}
+            onChange={toUpper(setOrigin)}
+            placeholder="CCU"
+            maxLength={3}
+            className="airport-input"
+          />
         </Field>
 
+        <div className="arrow">→</div>
+
         <Field label="🛬 To">
-          <select value={dest} onChange={e => setDest(e.target.value)}>
-            {dests.map(d => <option key={d}>{d}</option>)}
-          </select>
+          <input
+            type="text"
+            value={dest}
+            onChange={toUpper(setDest)}
+            placeholder="BLR"
+            maxLength={3}
+            className="airport-input"
+          />
         </Field>
 
         <Field label="🔄 Trip type">
           <select value={tripType} onChange={e => setTripType(e.target.value)}>
-            {tripTypes.map(t => <option key={t}>{t}</option>)}
+            {TRIP_TYPES.map(t => <option key={t}>{t}</option>)}
           </select>
         </Field>
 
@@ -37,46 +53,6 @@ export default function SearchBar({
           />
         </Field>
       </div>
-
-      <div className="searchbar-row searchbar-dates">
-        <Field label="History from">
-          <input
-            type="date"
-            value={historyFrom}
-            onChange={e => setHistoryFrom(e.target.value)}
-          />
-        </Field>
-
-        <Field label="History to">
-          <input
-            type="date"
-            value={historyTo}
-            onChange={e => setHistoryTo(e.target.value)}
-          />
-        </Field>
-
-        {(historyFrom || historyTo) && (
-          <button
-            className="clear-btn"
-            onClick={() => { setHistoryFrom(''); setHistoryTo('') }}
-          >
-            Clear dates
-          </button>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function Field({ label, children }) {
-  return (
-    <div className="field">
-      <label>{label}</label>
-      {children}
-    </div>
-  )
-}
-
 
       <div className="searchbar-row searchbar-dates">
         <Field label="History from">

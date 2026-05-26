@@ -37,13 +37,18 @@ def poll(config=None):
     for route in routes:
         label = f"{route['origin']}→{route['destination']} ({route['depart_date']})"
         try:
-            price = scraper.fetch_price(route)
-            if price is None:
-                log.warning("No price returned for route %d %s", route["id"], label)
+            from datetime import datetime, timezone
+            fetched_at = datetime.now(timezone.utc).isoformat()
+
+            flights = scraper.fetch_all(route)
+            if not flights:
+                log.warning("No flights returned for route %d %s", route["id"], label)
                 continue
 
-            db.insert_snapshot(route["id"], price)
-            log.info("Route %d %s: ₹%,.0f", route["id"], label, price)
+            price = min(f["price"] for f in flights)
+            db.insert_snapshot(route["id"], price, fetched_at)
+            db.insert_flight_options(route["id"], flights, fetched_at)
+            log.info("Route %d %s: ₹%,.0f (%d options)", route["id"], label, price, len(flights))
 
             prev_two = db.get_latest_two(route["id"])
             # prev_two[0] is the snapshot just inserted; [1] is the one before
