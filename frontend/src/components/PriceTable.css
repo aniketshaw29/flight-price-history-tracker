@@ -1,0 +1,62 @@
+.table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.table-toggle {
+  width: 100%;
+  padding: 0.9rem 1.25rem;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.table-toggle:hover {
+  background: var(--bg);
+}
+
+.table-scroll {
+  max-height: 340px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr:hover { background: var(--bg); }
+
+tbody td {
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.price-cell { font-weight: 600; }
+.muted  { color: var(--muted); }
+.green  { color: var(--green); font-weight: 600; }
+.red    { color: var(--danger); font-weight: 600; }

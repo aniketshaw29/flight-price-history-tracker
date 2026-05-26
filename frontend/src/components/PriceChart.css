@@ -1,0 +1,27 @@
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 0.5rem 1rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+
+.chart-tooltip {
+  background: var(--text);
+  color: #fff;
+  border-radius: 7px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.tooltip-date {
+  color: #cbd5e1;
+  font-size: 0.78rem;
+}
+
+.tooltip-price {
+  font-weight: 700;
+  font-size: 1rem;
+}

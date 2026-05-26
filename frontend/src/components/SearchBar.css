@@ -1,0 +1,78 @@
+.searchbar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.searchbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.searchbar-dates {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 160px;
+}
+
+.field label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.field select,
+.field input[type="date"] {
+  height: 40px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--bg);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.field select:focus,
+.field input[type="date"]:focus {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.field input[type="date"] {
+  min-width: 155px;
+}
+
+.clear-btn {
+  align-self: flex-end;
+  height: 40px;
+  padding: 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.clear-btn:hover {
+  background: #f1f5f9;
+}
