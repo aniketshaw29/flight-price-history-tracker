@@ -1,6 +1,6 @@
 import sqlite3
-from pathlib import Path
 from datetime import date, timedelta
+from pathlib import Path
 
 import altair as alt
 import pandas as pd
@@ -10,18 +10,19 @@ DB_PATH = Path("data/flights.db")
 
 st.set_page_config(page_title="Flight Price Tracker", layout="wide", page_icon="✈️")
 
-# ── css tweaks ────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-[data-testid="stSidebar"] { min-width: 280px; max-width: 280px; }
-.metric-card { background: #f8f9fb; border-radius: 10px; padding: 16px 20px; }
-.block-container { padding-top: 2rem; }
+.block-container { padding-top: 1.5rem; padding-bottom: 1rem; }
+div[data-testid="stSelectbox"] label { font-weight: 600; font-size: 0.8rem; color: #555; }
+div[data-testid="stDateInput"] label { font-weight: 600; font-size: 0.8rem; color: #555; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── guard: no db yet ──────────────────────────────────────────────────────────
+# ── header ────────────────────────────────────────────────────────────────────
+st.markdown("## ✈️ Flight Price Tracker")
+
 if not DB_PATH.exists():
-    st.warning("No data yet — run `./start.sh` to start the tracker.")
+    st.warning("No data yet — run `./start.sh` to begin tracking.")
     st.stop()
 
 conn = sqlite3.connect(DB_PATH)
@@ -29,38 +30,44 @@ conn.row_factory = sqlite3.Row
 routes = conn.execute("SELECT * FROM routes WHERE active=1 ORDER BY id").fetchall()
 
 if not routes:
-    st.info("No routes tracked yet. Add one via `config.toml` and restart the tracker.")
+    st.info("No routes tracked yet. Add routes in `config.toml` and restart the tracker.")
     conn.close()
     st.stop()
 
-# ── sidebar: filters ──────────────────────────────────────────────────────────
-with st.sidebar:
-    st.title("✈️ Flight Tracker")
-    st.divider()
+# ── search bar ────────────────────────────────────────────────────────────────
+st.markdown("---")
+c1, c2, c3, c4 = st.columns([2, 2, 2, 2])
 
-    origins      = sorted(set(r["origin"]      for r in routes))
-    destinations = sorted(set(r["destination"] for r in routes))
+all_origins = sorted(set(r["origin"] for r in routes))
+all_dests   = sorted(set(r["destination"] for r in routes))
 
-    origin = st.selectbox("From", origins)
-    dest   = st.selectbox("To",   destinations)
+with c1:
+    origin = st.selectbox("🛫  From", all_origins)
 
-    trip_types     = sorted(set(r["trip_type"] for r in routes
-                                if r["origin"] == origin and r["destination"] == dest))
-    trip_type      = st.selectbox("Trip type", trip_types) if trip_types else None
+with c2:
+    # only show destinations reachable from chosen origin
+    valid_dests = sorted(set(r["destination"] for r in routes if r["origin"] == origin))
+    dest = st.selectbox("🛬  To", valid_dests)
 
-    depart_dates   = sorted(set(r["depart_date"] for r in routes
-                                if r["origin"] == origin
-                                and r["destination"] == dest
-                                and r["trip_type"] == trip_type))
-    depart_date    = st.selectbox("Departure date", depart_dates) if depart_dates else None
+with c3:
+    valid_types = sorted(set(
+        r["trip_type"] for r in routes
+        if r["origin"] == origin and r["destination"] == dest
+    ))
+    trip_type = st.selectbox("🔄  Trip type", valid_types)
 
-    st.divider()
-    st.caption("History window")
-    today     = date.today()
-    date_from = st.date_input("From", value=today - timedelta(days=30), max_value=today)
-    date_to   = st.date_input("To",   value=today,                      max_value=today)
+with c4:
+    valid_dates = sorted(set(
+        r["depart_date"] for r in routes
+        if r["origin"] == origin
+        and r["destination"] == dest
+        and r["trip_type"] == trip_type
+    ))
+    depart_date = st.selectbox("📅  Departure date", valid_dates)
 
-# ── resolve selected route ────────────────────────────────────────────────────
+st.markdown("---")
+
+# ── resolve route ─────────────────────────────────────────────────────────────
 route = next(
     (r for r in routes
      if r["origin"]      == origin
@@ -71,89 +78,99 @@ route = next(
 )
 
 if route is None:
-    st.info("No route matches your selection. Adjust the filters in the sidebar.")
+    st.info("No route matches this combination.")
     conn.close()
     st.stop()
 
-# ── fetch snapshots ───────────────────────────────────────────────────────────
-snapshots = conn.execute(
+# ── load snapshots ────────────────────────────────────────────────────────────
+rows = conn.execute(
     "SELECT price, fetched_at FROM price_snapshots WHERE route_id=? ORDER BY fetched_at",
     (route["id"],),
 ).fetchall()
 conn.close()
 
-if not snapshots:
-    st.info("No price data yet for this route — the tracker hasn't polled it yet.")
+if not rows:
+    st.info("No price data yet for this route — waiting for first poll.")
     st.stop()
 
-df = pd.DataFrame([{"Price (₹)": s["price"], "Time": s["fetched_at"]} for s in snapshots])
+df = pd.DataFrame([{"Price (₹)": r["price"], "Time": r["fetched_at"]} for r in rows])
 df["Time"] = pd.to_datetime(df["Time"])
 
-# apply date window filter
-df_filtered = df[
-    (df["Time"].dt.date >= date_from) &
-    (df["Time"].dt.date <= date_to)
-]
+# ── history window filter ─────────────────────────────────────────────────────
+today     = date.today()
+min_date  = df["Time"].dt.date.min()
 
-# ── header ────────────────────────────────────────────────────────────────────
+fw1, fw2, _ = st.columns([2, 2, 4])
+with fw1:
+    date_from = st.date_input("History from", value=min_date, min_value=min_date, max_value=today)
+with fw2:
+    date_to   = st.date_input("History to",   value=today,    min_value=min_date, max_value=today)
+
+df_view = df[(df["Time"].dt.date >= date_from) & (df["Time"].dt.date <= date_to)]
+
+# ── route title ───────────────────────────────────────────────────────────────
 ret_str = f" → {route['return_date']}" if route["return_date"] else ""
-st.markdown(f"## {origin} → {dest}{ret_str}")
-st.caption(f"{trip_type}  ·  departs {depart_date}  ·  threshold ₹{route['threshold']:,.0f}")
-st.divider()
+st.markdown(f"### {origin} → {dest}{ret_str} &nbsp;&nbsp; <span style='font-size:0.9rem;color:#888'>{trip_type} · departs {depart_date}</span>", unsafe_allow_html=True)
 
 # ── metrics ───────────────────────────────────────────────────────────────────
-current  = df["Price (₹)"].iloc[-1]
-lowest   = df["Price (₹)"].min()
-highest  = df["Price (₹)"].max()
-delta    = current - df["Price (₹)"].iloc[-2] if len(df) > 1 else None
-below    = current < route["threshold"]
+current   = df["Price (₹)"].iloc[-1]
+prev      = df["Price (₹)"].iloc[-2] if len(df) > 1 else current
+delta     = current - prev
+lowest    = df["Price (₹)"].min()
+highest   = df["Price (₹)"].max()
+threshold = route["threshold"]
+below     = current < threshold
 
-c1, c2, c3, c4, c5 = st.columns(5)
-c1.metric("Current Price",  f"₹{current:,.0f}",  delta=f"₹{delta:,.0f}"  if delta is not None else None)
-c2.metric("Lowest Ever",    f"₹{lowest:,.0f}")
-c3.metric("Highest Ever",   f"₹{highest:,.0f}")
-c4.metric("Your Threshold", f"₹{route['threshold']:,.0f}")
-c5.metric("vs Threshold",   "BELOW ✓" if below else "ABOVE", delta_color="off")
+m1, m2, m3, m4, m5 = st.columns(5)
+m1.metric("Current Price",  f"₹{current:,.0f}",   delta=f"₹{delta:+,.0f}" if delta else None)
+m2.metric("Lowest Ever",    f"₹{lowest:,.0f}")
+m3.metric("Highest Ever",   f"₹{highest:,.0f}")
+m4.metric("Alert Threshold",f"₹{threshold:,.0f}")
+m5.metric("Status", "Below threshold ✓" if below else "Above threshold", delta_color="off")
 
-st.divider()
+st.markdown("")
 
 # ── chart ─────────────────────────────────────────────────────────────────────
-if df_filtered.empty:
-    st.info("No data in the selected date window. Widen the range in the sidebar.")
+if df_view.empty:
+    st.warning("No data in the selected history window — try widening the date range.")
 else:
-    price_line = (
-        alt.Chart(df_filtered)
-        .mark_line(point=alt.OverlayMarkDef(size=60), color="#4C8EF5", strokeWidth=2)
+    line = (
+        alt.Chart(df_view)
+        .mark_line(point=alt.OverlayMarkDef(size=70, filled=True), strokeWidth=2.5, color="#2563EB")
         .encode(
-            x=alt.X("Time:T", title="Date / Time", axis=alt.Axis(format="%b %d %H:%M")),
-            y=alt.Y(
-                "Price (₹):Q",
-                title="Price (INR)",
-                scale=alt.Scale(zero=False),
-            ),
+            x=alt.X("Time:T", title="", axis=alt.Axis(format="%d %b %H:%M", labelAngle=-30)),
+            y=alt.Y("Price (₹):Q", title="Price (INR)", scale=alt.Scale(zero=False)),
             tooltip=[
-                alt.Tooltip("Time:T", title="Time",       format="%b %d %Y %H:%M"),
-                alt.Tooltip("Price (₹):Q", title="Price", format=",.0f"),
+                alt.Tooltip("Time:T",      title="Time",  format="%d %b %Y %H:%M"),
+                alt.Tooltip("Price (₹):Q", title="₹",     format=",.0f"),
             ],
         )
     )
 
-    threshold_line = (
-        alt.Chart(pd.DataFrame({"t": [route["threshold"]]}))
-        .mark_rule(color="#e05252", strokeDash=[6, 3], strokeWidth=1.5)
-        .encode(y=alt.Y("t:Q", title=""))
+    rule = (
+        alt.Chart(pd.DataFrame({"y": [threshold]}))
+        .mark_rule(color="#DC2626", strokeDash=[8, 4], strokeWidth=1.5)
+        .encode(y="y:Q")
+    )
+
+    label = (
+        alt.Chart(pd.DataFrame({"y": [threshold], "label": [f"Threshold ₹{threshold:,.0f}"]}))
+        .mark_text(align="right", dy=-8, color="#DC2626", fontSize=11)
+        .encode(
+            y=alt.Y("y:Q"),
+            x=alt.value("width"),
+            text="label:N",
+        )
     )
 
     st.altair_chart(
-        (price_line + threshold_line).properties(height=400),
+        (line + rule + label).properties(height=420),
         use_container_width=True,
     )
 
-# ── raw data table ────────────────────────────────────────────────────────────
-with st.expander("Raw price history", expanded=False):
+# ── raw table ─────────────────────────────────────────────────────────────────
+with st.expander("Raw data"):
     st.dataframe(
-        df_filtered
-        .sort_values("Time", ascending=False)
-        .reset_index(drop=True),
+        df_view.sort_values("Time", ascending=False).reset_index(drop=True),
         use_container_width=True,
     )
