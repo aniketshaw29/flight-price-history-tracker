@@ -21,11 +21,11 @@ def _email_creds():
     )
 
 
-def send_alert(config, route, new_price, old_price):
+def send_alert(route, new_price, old_price):
     """Send an email when a price drops below the route threshold."""
     sender, password, recipient = _email_creds()
-    smtp_host = config["email"]["smtp_host"]
-    smtp_port = config["email"]["smtp_port"]
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
 
     ret_line = f"Return:     {route['return_date']}\n" if route.get("return_date") else ""
 
