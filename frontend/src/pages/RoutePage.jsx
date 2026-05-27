@@ -18,8 +18,6 @@ export default function RoutePage() {
   const [dest, setDest]             = useState('')
   const [tripType, setTripType]     = useState('one-way')
   const [departDate, setDepartDate] = useState('')
-  const [historyFrom, setHistoryFrom] = useState('')
-  const [historyTo, setHistoryTo]     = useState('')
   const [history, setHistory]   = useState([])
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState(null)
@@ -55,14 +53,11 @@ export default function RoutePage() {
     if (!selectedRoute) { setHistory([]); return }
     setLoading(true)
     setError(null)
-    const params = new URLSearchParams()
-    if (historyFrom) params.set('from_date', historyFrom)
-    if (historyTo)   params.set('to_date', historyTo)
-    fetch(`/api/routes/${selectedRoute.id}/history?${params}`)
+    fetch(`/api/routes/${selectedRoute.id}/history`)
       .then(r => r.json())
       .then(data => { setHistory(data); setLoading(false) })
       .catch(() => { setError('Failed to load history.'); setLoading(false) })
-  }, [selectedRoute, historyFrom, historyTo])
+  }, [selectedRoute])
 
   function handleSaveThreshold(newThreshold) {
     if (!selectedRoute) return
@@ -97,8 +92,6 @@ export default function RoutePage() {
         dest={dest}             setDest={setDest}
         tripType={tripType}     setTripType={setTripType}
         departDate={departDate} setDepartDate={setDepartDate}
-        historyFrom={historyFrom} setHistoryFrom={setHistoryFrom}
-        historyTo={historyTo}     setHistoryTo={setHistoryTo}
       />
 
       {error && <div className="error-banner">{error}</div>}
@@ -106,13 +99,7 @@ export default function RoutePage() {
       {isReady && !selectedRoute && !error && (
         <div className="not-tracked">
           <strong>{origin} → {dest} ({tripType}) on {departDate}</strong> is not being tracked yet.
-          <br />Add this to <code>config.toml</code> and restart the tracker:
-          <pre>{`[[routes]]
-origin      = "${origin}"
-destination = "${dest}"
-depart_date = "${departDate}"
-trip_type   = "${tripType}"
-threshold   = 4000`}</pre>
+          <br />Add this route from the dashboard.
         </div>
       )}
 

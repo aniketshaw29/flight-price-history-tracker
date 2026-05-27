@@ -7,8 +7,6 @@ export default function SearchBar({
   dest, setDest,
   tripType, setTripType,
   departDate, setDepartDate,
-  historyFrom, setHistoryFrom,
-  historyTo, setHistoryTo,
 }) {
   const toUpper = (setter) => (e) => setter(e.target.value.toUpperCase().slice(0, 3))
 
@@ -52,33 +50,6 @@ export default function SearchBar({
             onChange={e => setDepartDate(e.target.value)}
           />
         </Field>
-      </div>
-
-      <div className="searchbar-row searchbar-dates">
-        <Field label="History from">
-          <input
-            type="date"
-            value={historyFrom}
-            onChange={e => setHistoryFrom(e.target.value)}
-          />
-        </Field>
-
-        <Field label="History to">
-          <input
-            type="date"
-            value={historyTo}
-            onChange={e => setHistoryTo(e.target.value)}
-          />
-        </Field>
-
-        {(historyFrom || historyTo) && (
-          <button
-            className="clear-btn"
-            onClick={() => { setHistoryFrom(''); setHistoryTo('') }}
-          >
-            Clear dates
-          </button>
-        )}
       </div>
     </div>
   )
