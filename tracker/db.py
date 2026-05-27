@@ -147,7 +147,14 @@ def set_route(route_id, origin, destination, depart_date, return_date, trip_type
 def insert_snapshot(route_id, price, fetched_at=None):
     if fetched_at is None:
         fetched_at = datetime.now(timezone.utc).isoformat()
+    today = fetched_at[:10]
     with _connect() as conn:
+        exists = conn.execute(
+            "SELECT 1 FROM price_snapshots WHERE route_id=? AND DATE(fetched_at)=?",
+            (route_id, today),
+        ).fetchone()
+        if exists:
+            return
         conn.execute(
             "INSERT INTO price_snapshots (route_id, price, fetched_at) VALUES (?,?,?)",
             (route_id, price, fetched_at),
@@ -157,7 +164,14 @@ def insert_snapshot(route_id, price, fetched_at=None):
 def insert_flight_options(route_id, flights, fetched_at):
     if not flights:
         return
+    today = fetched_at[:10]
     with _connect() as conn:
+        exists = conn.execute(
+            "SELECT 1 FROM flight_options WHERE route_id=? AND DATE(fetched_at)=?",
+            (route_id, today),
+        ).fetchone()
+        if exists:
+            return
         conn.executemany(
             """INSERT INTO flight_options
                (route_id, fetched_at, airline, departure, arrival, duration, stops, price)
