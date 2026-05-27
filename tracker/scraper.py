@@ -57,16 +57,19 @@ def fetch_all(route) -> list[dict]:
             price = _parse_price(f.price)
             if price is None:
                 continue
+            stops = _parse_stops(getattr(f, "stops", 0))
+            if stops != 0:
+                continue
             flights.append({
                 "airline":   getattr(f, "name",      None),
                 "departure": getattr(f, "departure", None),
                 "arrival":   getattr(f, "arrival",   None),
                 "duration":  getattr(f, "duration",  None),
-                "stops":     _parse_stops(getattr(f, "stops", 0)),
+                "stops":     stops,
                 "price":     price,
             })
         flights.sort(key=lambda x: x["price"])
-        log.info("Fetched %d flights for %s→%s on %s", len(flights), origin, dest, depart)
+        log.info("Fetched %d nonstop flights for %s→%s on %s", len(flights), origin, dest, depart)
         return flights
 
     except Exception as exc:
