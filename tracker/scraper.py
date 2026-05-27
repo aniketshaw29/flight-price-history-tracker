@@ -60,11 +60,17 @@ def fetch_all(route) -> list[dict]:
             stops = _parse_stops(getattr(f, "stops", 0))
             if stops != 0:
                 continue
+            airline   = getattr(f, "name",      None) or ''
+            departure = getattr(f, "departure", None) or ''
+            arrival   = getattr(f, "arrival",   None) or ''
+            duration  = getattr(f, "duration",  None) or ''
+            if not airline or not departure or not arrival:
+                continue
             flights.append({
-                "airline":   getattr(f, "name",      None),
-                "departure": getattr(f, "departure", None),
-                "arrival":   getattr(f, "arrival",   None),
-                "duration":  getattr(f, "duration",  None),
+                "airline":   airline,
+                "departure": departure,
+                "arrival":   arrival,
+                "duration":  duration,
                 "stops":     stops,
                 "price":     price,
             })

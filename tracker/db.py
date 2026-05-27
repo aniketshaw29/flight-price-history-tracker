@@ -167,7 +167,7 @@ def insert_flight_options(route_id, flights, fetched_at):
     today = fetched_at[:10]
     with _connect() as conn:
         exists = conn.execute(
-            "SELECT 1 FROM flight_options WHERE route_id=? AND DATE(fetched_at)=?",
+            "SELECT 1 FROM flight_options WHERE route_id=? AND DATE(fetched_at)=? AND airline != ''",
             (route_id, today),
         ).fetchone()
         if exists:
