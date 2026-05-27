@@ -6,10 +6,13 @@ import './Dashboard.css'
 const fmt = n => n != null ? `₹${Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '—'
 
 export default function Dashboard() {
-  const [routes, setRoutes]       = useState([])
-  const [error, setError]         = useState(null)
-  const [showAdd, setShowAdd]     = useState(false)
+  const [routes, setRoutes]         = useState([])
+  const [error, setError]           = useState(null)
+  const [showAdd, setShowAdd]       = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [pinned, setPinned]         = useState(() => {
+    try { return JSON.parse(localStorage.getItem('pinnedRoutes') || '[]') } catch { return [] }
+  })
   const navigate = useNavigate()
 
   const fetchRoutes = useCallback(() => {
@@ -21,24 +24,40 @@ export default function Dashboard() {
 
   useEffect(fetchRoutes, [fetchRoutes])
 
+  function togglePin(id) {
+    setPinned(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+      localStorage.setItem('pinnedRoutes', JSON.stringify(next))
+      return next
+    })
+  }
+
   function handleRefresh() {
     setRefreshing(true)
-    fetch('/api/poll', { method: 'POST' })
-      .catch(() => {})
-    // scraping takes ~10–30s per route; re-fetch after 20s
-    setTimeout(() => {
-      fetchRoutes()
-      setRefreshing(false)
-    }, 20000)
+    fetch('/api/poll', { method: 'POST' }).catch(() => {})
+    setTimeout(() => { fetchRoutes(); setRefreshing(false) }, 20000)
   }
 
   function handleDelete(e, id) {
     e.stopPropagation()
     if (!window.confirm('Remove this route from tracking?')) return
     fetch(`/api/routes/${id}`, { method: 'DELETE' })
-      .then(() => setRoutes(prev => prev.filter(r => r.id !== id)))
+      .then(() => {
+        setRoutes(prev => prev.filter(r => r.id !== id))
+        setPinned(prev => {
+          const next = prev.filter(x => x !== id)
+          localStorage.setItem('pinnedRoutes', JSON.stringify(next))
+          return next
+        })
+      })
       .catch(() => setError('Failed to remove route.'))
   }
+
+  const sorted = [...routes].sort((a, b) => {
+    const ap = pinned.includes(a.id) ? 0 : 1
+    const bp = pinned.includes(b.id) ? 0 : 1
+    return ap - bp
+  })
 
   return (
     <div className="dashboard">
@@ -59,12 +78,14 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="route-grid">
-        {routes.map(r => (
-          <RouteCard
+      <div className="route-list">
+        {sorted.map(r => (
+          <RouteRow
             key={r.id}
             route={r}
+            pinned={pinned.includes(r.id)}
             onClick={() => navigate(`/route/${r.id}`)}
+            onPin={() => togglePin(r.id)}
             onDelete={e => handleDelete(e, r.id)}
           />
         ))}
@@ -80,40 +101,43 @@ export default function Dashboard() {
   )
 }
 
-function RouteCard({ route, onClick, onDelete }) {
+function RouteRow({ route, pinned, onClick, onPin, onDelete }) {
   const hasPrice = route.latest_price != null
   const below    = hasPrice && route.latest_price < route.threshold
 
   return (
-    <div className="route-card" onClick={onClick} role="button" tabIndex={0}
+    <div className={`route-row ${pinned ? 'route-row-pinned' : ''}`}
+      onClick={onClick} role="button" tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && onClick()}>
-      <button className="rc-delete" onClick={onDelete} title="Remove route" type="button">✕</button>
 
-      <div className="rc-route">
-        <span className="rc-airport">{route.origin}</span>
-        <span className="rc-arrow">→</span>
-        <span className="rc-airport">{route.destination}</span>
+      <button className="rr-pin" onClick={e => { e.stopPropagation(); onPin() }}
+        title={pinned ? 'Unpin' : 'Pin'} type="button">
+        {pinned ? '📌' : '📍'}
+      </button>
+
+      <div className="rr-route">
+        <span className="rr-airport">{route.origin}</span>
+        <span className="rr-arrow">→</span>
+        <span className="rr-airport">{route.destination}</span>
       </div>
 
-      <div className="rc-meta">
+      <div className="rr-meta">
         {route.trip_type} · departs {route.depart_date}
       </div>
 
-      <div className="rc-price">
-        {hasPrice ? fmt(route.latest_price) : 'No data yet'}
+      <div className="rr-price-group">
+        <span className="rr-price">{hasPrice ? fmt(route.latest_price) : '—'}</span>
+        {hasPrice && (
+          <span className={`rr-status ${below ? 'rr-below' : 'rr-above'}`}>
+            {below ? '↓ below threshold' : '↑ above threshold'}
+          </span>
+        )}
+        <span className="rr-threshold">alert at {fmt(route.threshold)}</span>
       </div>
 
-      {hasPrice && (
-        <div className={`rc-status ${below ? 'rc-below' : 'rc-above'}`}>
-          {below ? 'Below threshold ✓' : 'Above threshold'}
-        </div>
-      )}
+      <div className="rr-cta">View →</div>
 
-      <div className="rc-threshold">
-        Alert at {fmt(route.threshold)}
-      </div>
-
-      <div className="rc-cta">View history →</div>
+      <button className="rr-delete" onClick={onDelete} title="Remove route" type="button">✕</button>
     </div>
   )
 }

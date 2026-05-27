@@ -42,11 +42,11 @@
   border-radius: 4px;
   line-height: 1;
 }
-.modal-close:hover { color: var(--text); background: #f1f5f9; }
+.modal-close:hover { color: var(--text); background: var(--surface-alt); }
 
 .modal-error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
   color: var(--danger);
   border-radius: var(--radius);
   padding: 0.6rem 0.9rem;
@@ -134,7 +134,7 @@
   font-size: 0.875rem;
   font-weight: 600;
 }
-.btn-cancel:hover { background: #f1f5f9; color: var(--text); }
+.btn-cancel:hover { background: var(--surface-alt); color: var(--text); }
 
 .btn-save {
   background: var(--primary);
@@ -160,9 +160,9 @@
 
 .modal-range-info {
   font-size: 0.8rem;
-  color: #2563eb;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  color: var(--primary);
+  background: var(--primary-light);
+  border: 1px solid var(--primary-border);
   border-radius: 6px;
   padding: 0.4rem 0.75rem;
   margin-bottom: 0.25rem;

@@ -7,15 +7,50 @@
 :root {
   --bg: #f4f6fb;
   --surface: #ffffff;
+  --surface-alt: #f8fafc;
   --border: #e2e8f0;
   --primary: #2563eb;
   --primary-light: #eff6ff;
+  --primary-border: #bfdbfe;
   --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
   --text: #1e293b;
   --muted: #64748b;
   --green: #16a34a;
+  --green-bg: #f0fdf4;
+  --green-bg-hover: #dcfce7;
+  --amber-bg: #fffbeb;
+  --amber-bg-hover: #fef3c7;
+  --amber-border: #fde68a;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
   --radius: 10px;
   --shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface-alt: #263548;
+  --border: #334155;
+  --primary: #60a5fa;
+  --primary-light: #1e3a5f;
+  --primary-border: #1d4ed8;
+  --danger: #f87171;
+  --danger-bg: #450a0a;
+  --danger-border: #7f1d1d;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --green: #4ade80;
+  --green-bg: #14532d;
+  --green-bg-hover: #166534;
+  --amber-bg: #451a03;
+  --amber-bg-hover: #78350f;
+  --amber-border: #92400e;
+  --code-bg: #0f172a;
+  --code-text: #cbd5e1;
+  --shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 
 body {
@@ -30,3 +65,20 @@ body {
   margin: 0 auto;
   padding: 2rem 1.5rem;
 }
+
+.theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  font-size: 1rem;
+  cursor: pointer;
+  z-index: 100;
+  box-shadow: var(--shadow);
+  line-height: 1;
+  transition: border-color 0.15s;
+}
+.theme-toggle:hover { border-color: var(--primary); }

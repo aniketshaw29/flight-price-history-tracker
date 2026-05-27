@@ -63,7 +63,7 @@
 .btn-watch:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btn-unwatch {
-  background: #f0fdf4;
+  background: var(--green-bg);
   color: var(--green);
   border: 1px solid var(--green);
   padding: 0.4rem 0.9rem;
@@ -72,7 +72,7 @@
   font-weight: 600;
   cursor: pointer;
 }
-.btn-unwatch:hover:not(:disabled) { background: #dcfce7; }
+.btn-unwatch:hover:not(:disabled) { background: var(--green-bg-hover); }
 .btn-unwatch:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .fhm-current {
@@ -109,7 +109,7 @@
 }
 
 .fhm-table th {
-  background: #f8fafc;
+  background: var(--surface-alt);
   text-align: left;
   padding: 0.55rem 0.9rem;
   font-size: 0.75rem;
@@ -126,4 +126,4 @@
 }
 
 .fhm-table tbody tr:last-child td { border-bottom: none; }
-.fhm-table tbody tr:hover { background: #f8fafc; }
+.fhm-table tbody tr:hover { background: var(--surface-alt); }

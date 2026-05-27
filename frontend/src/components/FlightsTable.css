@@ -45,8 +45,8 @@
 }
 
 .ft-error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
   color: var(--danger);
   border-radius: var(--radius);
   padding: 0.6rem 0.9rem;
@@ -73,7 +73,7 @@
 }
 
 .ft-table th {
-  background: #f8fafc;
+  background: var(--surface-alt);
   text-align: left;
   padding: 0.65rem 0.9rem;
   font-size: 0.78rem;
@@ -96,15 +96,15 @@
 }
 
 .ft-table tbody tr:hover {
-  background: #f8fafc;
+  background: var(--surface-alt);
 }
 
 .ft-cheapest td {
-  background: #f0fdf4;
+  background: var(--green-bg);
 }
 
 .ft-cheapest:hover td {
-  background: #dcfce7;
+  background: var(--green-bg-hover);
 }
 
 .ft-airline {
@@ -150,10 +150,10 @@
 }
 
 .ft-watched td {
-  background: #fffbeb;
+  background: var(--amber-bg);
 }
 .ft-watched:hover td {
-  background: #fef3c7;
+  background: var(--amber-bg-hover);
 }
   display: inline-block;
   margin-left: 0.5rem;

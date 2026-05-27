@@ -58,7 +58,7 @@
   border-radius: 5px;
   padding: 0 0.5rem;
   outline: none;
-  background: white;
+  background: var(--surface);
   color: var(--text);
 }
 
