@@ -7,7 +7,6 @@ const fmt = n => n != null ? `₹${Number(n).toLocaleString('en-IN', { maximumFr
 export default function FlightsTable({ routeId, threshold, refreshKey, onWatchChange }) {
   const [flights, setFlights]     = useState([])
   const [watched, setWatched]     = useState([])
-  const [nonstop, setNonstop]     = useState(false)
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState(null)
   const [fetchedAt, setFetchedAt] = useState(null)
@@ -17,7 +16,7 @@ export default function FlightsTable({ routeId, threshold, refreshKey, onWatchCh
     if (!routeId) return
     setLoading(true)
     setError(null)
-    fetch(`/api/routes/${routeId}/options?nonstop=${nonstop}`)
+    fetch(`/api/routes/${routeId}/options`)
       .then(r => r.json())
       .then(data => {
         setFlights(data)
@@ -25,7 +24,7 @@ export default function FlightsTable({ routeId, threshold, refreshKey, onWatchCh
         setLoading(false)
       })
       .catch(() => { setError('Failed to load flights.'); setLoading(false) })
-  }, [routeId, nonstop])
+  }, [routeId])
 
   useEffect(() => {
     if (!routeId) return
@@ -61,10 +60,6 @@ export default function FlightsTable({ routeId, threshold, refreshKey, onWatchCh
         <h3 className="ft-title">Available Flights</h3>
         <div className="ft-controls">
           {fetchedAt && <span className="ft-timestamp">as of {fmtTime(fetchedAt)}</span>}
-          <label className="ft-toggle">
-            <input type="checkbox" checked={nonstop} onChange={e => setNonstop(e.target.checked)} />
-            Nonstop only
-          </label>
         </div>
       </div>
 
@@ -73,9 +68,7 @@ export default function FlightsTable({ routeId, threshold, refreshKey, onWatchCh
       {loading ? (
         <div className="ft-empty">Loading flights…</div>
       ) : flights.length === 0 ? (
-        <div className="ft-empty">
-          {nonstop ? 'No nonstop flights found.' : 'No flight data for the latest poll yet.'}
-        </div>
+        <div className="ft-empty">No flight data for the latest poll yet.</div>
       ) : (
         <div className="ft-scroll">
           <table className="ft-table">
@@ -86,7 +79,6 @@ export default function FlightsTable({ routeId, threshold, refreshKey, onWatchCh
                 <th>Departure</th>
                 <th>Arrival</th>
                 <th>Duration</th>
-                <th>Stops</th>
                 <th className="ft-price-col">Price</th>
               </tr>
             </thead>
@@ -107,11 +99,6 @@ export default function FlightsTable({ routeId, threshold, refreshKey, onWatchCh
                     <td>{f.departure || '—'}</td>
                     <td>{f.arrival || '—'}</td>
                     <td className="ft-duration">{f.duration || '—'}</td>
-                    <td className="ft-stops">
-                      {f.stops === 0
-                        ? <span className="ft-nonstop">Nonstop</span>
-                        : `${f.stops} stop${f.stops > 1 ? 's' : ''}`}
-                    </td>
                     <td className="ft-price-col">
                       <span className="ft-price">{fmt(f.price)}</span>
                       {i === 0 && <span className="ft-badge">Cheapest</span>}
