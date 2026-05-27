@@ -148,3 +148,22 @@
 }
 .btn-save:hover:not(:disabled) { background: #1d4ed8; }
 .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.modal-range-toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.modal-range-toggle input { width: auto; cursor: pointer; }
+
+.modal-range-info {
+  font-size: 0.8rem;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  margin-bottom: 0.25rem;
+}
