@@ -1,5 +1,4 @@
 import logging
-import tomllib
 from pathlib import Path
 
 import click
@@ -8,13 +7,6 @@ from tracker import db
 from tracker import scheduler as sched
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-
-CONFIG_PATH = Path("config.toml")
-
-
-def _load_config():
-    with open(CONFIG_PATH, "rb") as f:
-        return tomllib.load(f)
 
 
 @click.group()
@@ -71,8 +63,7 @@ def remove_route(route_id):
 @cli.command("poll")
 def poll():
     """Manually trigger a price check right now."""
-    config = _load_config()
-    sched.poll(config)
+    sched.poll()
     click.echo("Poll complete.")
 
 
